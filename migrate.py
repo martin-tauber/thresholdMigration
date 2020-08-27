@@ -34,12 +34,18 @@ LoggerFactory = LoggerFactory()
 class InstanceThresholdMigrator():
     def __init__(self, thresholds):
         self.thresholds = thresholds.set
+
         self.conditionMap = {
             ">": "GREATER_THAN",
             "<": "SMALLER_THAN",
             "=": "EQUALS",
             "<=": "SMALLER_OR_EQUALS",
             ">=": "GREATER_OR_EQUALS"
+        }
+
+        self.absoluteConditionMap = {
+            ">": "ABOVE",
+            "<": "BELOW"
         }
 
         self.baselineMap = {
@@ -76,10 +82,10 @@ class InstanceThresholdMigrator():
                 "details" : {
                     "absoluteDeviation" : threshold["absoluteDeviation"],
                     "autoClose": threshold["autoClose"],
-                    "comparison": self.conditionMap[threshold["condition"]],
+                    "comparison": self.absoluteConditionMap[threshold["condition"]] if threshold["thresholdType"] == "absolute" else self.conditionMap[threshold["condition"]] ,
                     "durationInMins": threshold["duration"],
                     "minimumSamplingWindow": threshold["minSampleWindow"],
-                    "outsideBaseline": threshold["outsideBasline"],
+                    "outsideBaseline": self.baselineMap[threshold["outsideBasline"]],
                     "percentDeviation": threshold["deviation"],
                     "predict": threshold["predict"],
                     "severity": threshold["severity"],
@@ -112,7 +118,7 @@ class FileThresholdSet(ThresholdSet):
                         "device": row[2],
                         "instance": row[3],
                         "attribute": row[4],
-                        "severity": row[5],
+                        "severity": row[5].upper(),
                         "duration": row[6],
                         "condition": row[7],
                         "value": row[8],
@@ -125,7 +131,7 @@ class FileThresholdSet(ThresholdSet):
                         "absoluteDeviation": row[15],
                         "deviation": row[16],
                         "suppressEvents": row[17],
-                        "thresholdType": row[18]
+                        "thresholdType": row[18].lower()
                     })
 
 #-----------------------
@@ -221,12 +227,12 @@ class PolicyFactory():
             "agentSelectionCriteria": "???",
             "associatedUserGroup": self.defaults["associatedUserGroup"] if "associatedUserGroup" in self.defaults else "Administrators",
             "description": self.defaults["description"] if "description" in self.defaults else "Auto Generated Policy",
-            "enabled": self.defaults["enabled"] if "enabled" in self.defaults else "false",
+            "enabled": self.defaults["enabled"] if "enabled" in self.defaults else False,
             "id": "???",
             "name": f"{agent}_Thresholds",
             "owner": self.defaults["owner"] if "owner" in self.defaults else "admin",
             "precedence": self.defaults["agentPrecedence"] if "agentPrecedence" in self.defaults else "399",
-            "shared": self.defaults["shared"] if "shared" in self.defaults else "false",
+            "shared": self.defaults["shared"] if "shared" in self.defaults else False,
             "tenant": {
                 "id": self.defaults["tenantId"] if "tenantId" in self.defaults else "*",
                 "name": self.defaults["tenantName"] if "tenantName" in self.defaults else "*"
@@ -277,6 +283,8 @@ defaultPrecedence="399"
 defaultFilename="thresholds.csv"
 defaultOut="out"
 defaultDirectory="."
+defaultOwner="admin"
+defaultGroup="Administrators"
                         
 def parseArguments():
     parser = parser = argparse.ArgumentParser(description='Generate TrueSight monitoring policies from instance thresholds.')
@@ -301,6 +309,18 @@ def parseArguments():
     parser.add_argument("-d", "--directory", action="store", dest="directory",
         help=f"path to the directory where the exported threshold files reside. The default directory is '{defaultDirectory}'")
 
+    parser.add_argument("--owner", action="store", dest="owner",
+        help=f"name of the owner of the policy. The default owner is '{defaultOwner}'.")
+
+    parser.add_argument("--shared", action="store_true", dest="shared", 
+        help=f"share the generated policy. The default is that the policy is not shared")
+
+    parser.add_argument("--enabled", action="store_true", dest="enabled", 
+        help=f"enable the generated policy. The default is that the policy is not enabled")
+
+    parser.add_argument("--group", action="store", dest="group",
+        help=f"name of the group to be used in the generated policy. The default group is '{defaultGroup}'.")
+
     return parser.parse_args()
 
 def getDefaults(args):
@@ -311,7 +331,11 @@ def getDefaults(args):
     defaults["agentPrecedence"] = args.precedence if args.precedence else defaultPrecedence
     defaults["filename"] = args.filename if args.filename else defaultFilename
     defaults["out"] = args.out if args.out else defaultOut
-
+    defaults["owner"] = args.owner if args.owner else defaultOwner
+    defaults["shared"] = args.shared
+    defaults["enabled"] = args.enabled
+    defaults["associatedUserGroup"] = args.group if args.group else defaultGroup
+ 
     return defaults
 
 def dump(policies, out):
@@ -327,7 +351,7 @@ def dump(policies, out):
 version = "1.0.0"
 
 logger = LoggerFactory.getLogger(__name__)
-logger.info(f"{__file__} migration utility Version {version} (c) 2020 BMC Software Inc.")
+logger.info(f"{__file__} Threshold Migration Utility Version {version} (c) 2020 BMC Software Inc.")
 
 args = parseArguments()
 defaults = getDefaults(args)
