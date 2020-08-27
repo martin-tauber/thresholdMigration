@@ -316,7 +316,7 @@ def getDefaults(args):
 
 def dump(policies, out):
     for policy in policies.values():
-        with open(policy["name"], 'w') as fp:
+        with open(f"{policy['name']}.mo", 'w') as fp:
             json.dump(policy, fp)    
 
 #-----------------------
