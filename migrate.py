@@ -34,6 +34,34 @@ LoggerFactory = LoggerFactory()
 class InstanceThresholdMigrator():
     def __init__(self, thresholds):
         self.thresholds = thresholds.set
+        self.conditionMap = {
+            ">": "GREATER_THAN",
+            "<": "SMALLER_THAN",
+            "=": "EQUALS",
+            "<=": "SMALLER_OR_EQUALS",
+            ">=": "GREATER_OR_EQUALS"
+        }
+
+        self.baselineMap = {
+            "Not Enabled": "notEnabled",
+            "Auto": "auto",
+            "Hourly Baseline": "hourly",
+            "Daily Baseline": "daily",
+            "Weekly Baseline": "weekly",
+            "Hourly And Daily": "hourlyAndDaily",
+            "Hourly And Daily Baseline": "hourlyAndDaily",
+            "All Baselines": "all"
+        }
+
+        self.basetypeMap = {
+            "Not Enabled": "notEnabled",
+            "Auto": "auto",
+            "Hourly": "hourly",
+            "Daily": "daily",
+            "Weekly": "weekly",
+            "Hourly And Daily": "hourlyAndDaily",
+            "All Baselines": "all"
+        }
 
     def migrate(self):
         configurations = []
@@ -48,7 +76,7 @@ class InstanceThresholdMigrator():
                 "details" : {
                     "absoluteDeviation" : threshold["absoluteDeviation"],
                     "autoClose": threshold["autoClose"],
-                    "comparison": threshold["condition"],
+                    "comparison": self.conditionMap[threshold["condition"]],
                     "durationInMins": threshold["duration"],
                     "minimumSamplingWindow": threshold["minSampleWindow"],
                     "outsideBaseline": threshold["outsideBasline"],
