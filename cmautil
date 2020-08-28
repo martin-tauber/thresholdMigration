@@ -78,28 +78,33 @@ class InstanceThresholdMigrator():
         configurations = []
         
         for threshold in self.thresholds:
-            configurations.append({
-                "agent": threshold["agent"],
-                "port": threshold["port"],
-                "solution": None,
-                "monitorType": threshold["monitorType"],
-                "attribute": threshold["attribute"],
-                "configurationType": "serverThresholdConfiguration",
-                "details" : {
-                    "absoluteDeviation" : threshold["absoluteDeviation"],
-                    "autoClose": threshold["autoClose"],
-                    "comparison": self.absoluteConditionMap[threshold["condition"]] if threshold["thresholdType"] == "absolute" else self.conditionMap[threshold["condition"]] ,
-                    "durationInMins": threshold["duration"],
-                    "minimumSamplingWindow": threshold["minSampleWindow"],
-                    "outsideBaseline": self.baselineMap[threshold["outsideBasline"]],
-                    "percentDeviation": threshold["deviation"],
-                    "predict": threshold["predict"],
-                    "severity": threshold["severity"],
-                    "threshold": threshold["value"]
-                },
-                "instanceName": threshold["instance"],
-                "type": threshold["thresholdType"]
-            })
+            try:
+                configurations.append({
+                    "agent": threshold["agent"],
+                    "port": threshold["port"],
+                    "solution": None,
+                    "monitorType": threshold["monitorType"],
+                    "attribute": threshold["attribute"],
+                    "configurationType": "serverThresholdConfiguration",
+                    "details" : {
+                        "absoluteDeviation" : threshold["absoluteDeviation"],
+                        "autoClose": threshold["autoClose"],
+                        "comparison": self.absoluteConditionMap[threshold["condition"]] if threshold["thresholdType"] == "absolute" else self.conditionMap[threshold["condition"]] ,
+                        "durationInMins": threshold["duration"],
+                        "minimumSamplingWindow": threshold["minSampleWindow"],
+                        "outsideBaseline": self.baselineMap[threshold["outsideBasline"]],
+                        "percentDeviation": threshold["deviation"],
+                        "predict": threshold["predict"],
+                        "severity": threshold["severity"],
+                        "threshold": threshold["value"]
+                    },
+                    "instanceName": threshold["instance"],
+                    "type": threshold["thresholdType"]
+                })
+            except Exception as error:
+                logger.error("An unexpected exception occured while migrating instance threshold. Continuing processing but entry is ignored.")
+                logger.error(f"agent: {threshold['agent']}, port: {threshold['port']}, monitorType: {threshold['monitorType']}, attribute: {threshold['attribute']}, instance: {threshold['instance']}, type: {threshold['thresholdType']}")
+                logger.error(error)
 
         return configurations
 
@@ -117,7 +122,12 @@ class FileThresholdSet(ThresholdSet):
 
         with open(self.filename) as input:
             reader = csv.reader(input)
+            header = True 
             for row in reader:
+                # skip header
+                if (header and row[0] == "PATROL Agent" and row[1] == "Monitor Type"): continue
+                header = False
+
                 if row[19] == "false":
                     self.set.append({
                         "agent": row[0].split(':')[0],
@@ -152,6 +162,7 @@ class PolicyFactory():
         self.defaults = defaults
 
     def generatePolicies(self):
+        logger.info("Generating policies ...")
         policies = {}
         for configuration in self.configurations:
             # no agent policy for this agent has been created
@@ -166,6 +177,7 @@ class PolicyFactory():
 
                 self.generateServerThresholdConfiguration(policies[agent], configuration)
 
+        logger.info(f"Generated {len(policies)} policies.")
         return policies
 
     def generateServerThresholdConfiguration(self, policy, configuration):
@@ -235,7 +247,7 @@ class PolicyFactory():
 
     def createAgentPolicy(self, agent, port):
         name = f"{agent}-{port}-Thresholds"
-        logger.info(f"Generating agent policy '{name}' ...")
+        logger.debug(f"Generating agent policy '{name}' ...")
         return {
             "agentSelectionCriteria": f"agentName EQUALS \"{agent}\" AND agentPort NUMBER_EQUALS \"{port}\"",
             "associatedUserGroup": self.defaults["associatedUserGroup"] if "associatedUserGroup" in self.defaults else "Administrators",
@@ -287,7 +299,7 @@ class KMRepository():
 
     def saveCache(self, path, filename):
         logger.info(f"Writing KM repsoitory to cache '{path}{os.path.sep}{filename}' ...")
-        os.makedirs(path)
+        os.makedirs(path, exist_ok = True)
         with open(f"{path}{os.path.sep}{filename}", 'w') as fp:
             json.dump(self.monitors, fp)
 
@@ -385,9 +397,11 @@ def getDefaults(args):
  
     return defaults
 
-def dump(policies, out):
+def dump(policies, path):
+    logger.info(f"Writing polycies to directory '{path}' ...")
+    os.makedirs(path, exist_ok = True)
     for policy in policies.values():
-        with open(f"{policy['name']}.mo", 'w') as fp:
+        with open(f"{path}{os.path.sep}{policy['name']}.mo", 'w') as fp:
             json.dump([policy], fp)
 
 def getKMRepository(cachedir, repositorydir, version):
@@ -409,9 +423,9 @@ def getKMRepository(cachedir, repositorydir, version):
     return kmRepository
 
 
-def migrateCmd(kmRepository):
+def migrateCmd(kmRepository, outputPath, thresholdFilename):
     # load the Threshold File
-    thresholdSet = FileThresholdSet("/Users/martin/Downloads/clm-aus-018821_AllInstanceThresholdSettings_2020_08_25_23_22_25.csv")
+    thresholdSet = FileThresholdSet(thresholdFilename)
     thresholdSet.load()
 
     # Migrate Thresholds
@@ -424,7 +438,7 @@ def migrateCmd(kmRepository):
     policies = policyFactory.generatePolicies()
 
     # Write Policies to file
-    dump(policies, defaults["out"])
+    dump(policies, outputPath)
 
 def kmrepoCmd():
     kmRepository = KMRepository(f"{defaults['repositoryDir']}{os.path.sep}bmc_products{os.path.sep}kmfiles")
@@ -438,14 +452,14 @@ def kmrepoCmd():
 version = "1.0.0"
 
 logger = LoggerFactory.getLogger(__name__)
-logger.info(f"{__file__} Threshold Migration Utility Version {version} (c) 2020 BMC Software Inc.")
+logger.info(f"{__file__} CMA Utility Version {version} (c) 2020 BMC Software Inc.")
 
 args = parseArguments()
 defaults = getDefaults(args)
 
 if args.cmd == "migrate":
     kmRepository = getKMRepository(defaults["cache"], args.repositoryDir, args.version) 
-    migrateCmd(kmRepository)
+    migrateCmd(kmRepository, outputPath=defaults["out"], thresholdFilename=defaults["filename"])
 
 elif args.cmd == "kmrepo":
     kmrepoCmd(args.version, args.repositoryDir)
