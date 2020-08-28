@@ -235,7 +235,7 @@ class PolicyFactory():
             "description": self.defaults["description"] if "description" in self.defaults else "Auto Generated Agent Policy",
             "enabled": self.defaults["enabled"] if "enabled" in self.defaults else False,
             "id": "???",
-            "name": f"{agent}_{port}_Thresholds",
+            "name": f"{agent}-{port}-Thresholds",
             "owner": self.defaults["owner"] if "owner" in self.defaults else "admin",
             "precedence": self.defaults["agentPrecedence"] if "agentPrecedence" in self.defaults else "399",
             "shared": self.defaults["shared"] if "shared" in self.defaults else False,
