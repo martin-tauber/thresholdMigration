@@ -5,6 +5,7 @@ import re
 import json
 import argparse
 import logging
+import uuid
 
 from xml.etree import cElementTree as ElementTree
 
@@ -71,6 +72,8 @@ class InstanceThresholdMigrator():
         }
 
     def migrate(self):
+        logger.info(f"Migrating {len(self.thresholds)} instance thresholds ...")
+
         configurations = []
         
         for threshold in self.thresholds:
@@ -110,6 +113,8 @@ class FileThresholdSet(ThresholdSet):
         self.filename = filename
 
     def load(self):
+        logger.info(f"Loading Server Thresholds from '{self.filename}' ...")
+
         with open(self.filename) as input:
             reader = csv.reader(input)
             for row in reader:
@@ -229,13 +234,15 @@ class PolicyFactory():
 
 
     def createAgentPolicy(self, agent, port):
+        name = f"{agent}-{port}-Thresholds"
+        logger.info(f"Generating agent policy '{name}' ...")
         return {
             "agentSelectionCriteria": f"agentName EQUALS \"{agent}\" AND agentPort NUMBER_EQUALS \"{port}\"",
             "associatedUserGroup": self.defaults["associatedUserGroup"] if "associatedUserGroup" in self.defaults else "Administrators",
             "description": self.defaults["description"] if "description" in self.defaults else "Auto Generated Agent Policy",
             "enabled": self.defaults["enabled"] if "enabled" in self.defaults else False,
-            "id": "???",
-            "name": f"{agent}-{port}-Thresholds",
+            "id": str(uuid.uuid4()),
+            "name": name,
             "owner": self.defaults["owner"] if "owner" in self.defaults else "admin",
             "precedence": self.defaults["agentPrecedence"] if "agentPrecedence" in self.defaults else "399",
             "shared": self.defaults["shared"] if "shared" in self.defaults else False,
@@ -256,7 +263,8 @@ class KMRepository():
         self.dirname = dirname
         self.monitors = {}
 
-    def load(self, dirname = None):
+    def load(self):
+        logger.info(f"Loading TrueSight repository located in directory '{self.dirname}' ...")
         pattern = re.compile(f".*[{os.path.sep}]([^{os.path.sep}]*)[{os.path.sep}]([^{os.path.sep}]*)[{os.path.sep}]lib[{os.path.sep}]knowledge$")
 
         # walk through the bmc_products directory and find all the lib/knowledge/*.xml files
