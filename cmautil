@@ -2,6 +2,7 @@
 import csv
 import os
 import re
+import glob
 import json
 import argparse
 import logging
@@ -256,9 +257,8 @@ class PolicyFactory():
 #-----------------------
 # KMRepository
 #-----------------------
-
 class KMRepository():
-    def __init__(self, dirname):
+    def __init__(self, dirname = None):
         self.dirname = dirname
         self.monitors = {}
 
@@ -285,10 +285,21 @@ class KMRepository():
                             "release": root.attrib["release"] if "release" in root.attrib else match[2]
                         }
 
+    def saveCache(self, path, filename):
+        logger.info(f"Writing KM repsoitory to cache '{path}{os.path.sep}{filename}' ...")
+        os.makedirs(path)
+        with open(f"{path}{os.path.sep}{filename}", 'w') as fp:
+            json.dump(self.monitors, fp)
+
+
+    def loadCache(self, filename):
+        logger.info(f"Loading KM repository from cache '{filename}' ...")
+        with open(filename) as fp:
+            self.monitors = json.load(fp)
+
 #-----------------------
 # Utils
 # ----------------------
-
 defaultRepositoryDir="bmc_products"
 defaultTenantId="*"
 defaultTenantName="*"
@@ -298,68 +309,131 @@ defaultOut="out"
 defaultDirectory="."
 defaultOwner="admin"
 defaultGroup="Administrators"
-                        
+defaultCache="cache"
+
+
 def parseArguments():
     parser = parser = argparse.ArgumentParser(description='Generate TrueSight monitoring policies from instance thresholds.')
-    parser.add_argument('-r','--repository', action="store", dest="repositoryDir",
+    cmdParsers = parser.add_subparsers( dest="cmd", help='sub-command help' )
+    migrateCmd = cmdParsers.add_parser('migrate', help='Migrate  ...')
+    migrateCmd.add_argument('-r','--repository', action="store", dest="repositoryDir",
         help=f"path to the bmc repository. The default path is '{defaultRepositoryDir}'. The repository is needed to gather information about solutions to be able to create policies.")
 
-    parser.add_argument("--tenantId", action="store", dest="tenantId",
+    migrateCmd.add_argument('--version', action="store", dest="version",
+        help=f"path to the bmc repository. The default path is '{defaultRepositoryDir}'. The repository is needed to gather information about solutions to be able to create policies.")
+
+    migrateCmd.add_argument("--tenantId", action="store", dest="tenantId",
         help=f"Tenant id to be used in policy generation. The default tenant id is '{defaultTenantId}'.")
 
-    parser.add_argument("--tenantName", action="store", dest="tenantName",
+    migrateCmd.add_argument("--tenantName", action="store", dest="tenantName",
         help=f"Tenant name to be used in policy generation The default tenant name is '{defaultTenantName}'.")
 
-    parser.add_argument("-p", "--precedence", action="store", dest="precedence",
-        help=f"precedence to be used in policy generation. The default precedence is '{defaultPrecedence}.")
+    migrateCmd.add_argument("-p", "--precedence", action="store", dest="precedence",
+        help=f"precedence to be used in policy generation. The default precedence is '{defaultPrecedence}'.")
 
-    parser.add_argument("-f", "--file", action="store", dest="filename",
+    migrateCmd.add_argument("-f", "--file", action="store", dest="filename",
         help=f"name of the file which which contains the thresholds exported from tsps. The default file name is '{defaultFilename}'")
 
-    parser.add_argument("-o", "--out", action="store", dest="out",
+    migrateCmd.add_argument("-o", "--out", action="store", dest="out",
         help=f"path to the directory where the generated policies should be stored. The default is '{defaultOut}'.'")
     
-    parser.add_argument("-d", "--directory", action="store", dest="directory",
+    migrateCmd.add_argument("-d", "--directory", action="store", dest="directory",
         help=f"path to the directory where the exported threshold files reside. The default directory is '{defaultDirectory}'")
 
-    parser.add_argument("--owner", action="store", dest="owner",
+    migrateCmd.add_argument("--owner", action="store", dest="owner",
         help=f"name of the owner of the policy. The default owner is '{defaultOwner}'.")
 
-    parser.add_argument("--shared", action="store_true", dest="shared", 
+    migrateCmd.add_argument("--shared", action="store_true", dest="shared", 
         help=f"share the generated policy. The default is that the policy is not shared")
 
-    parser.add_argument("--enabled", action="store_true", dest="enabled", 
+    migrateCmd.add_argument("--enabled", action="store_true", dest="enabled", 
         help=f"enable the generated policy. The default is that the policy is not enabled")
 
-    parser.add_argument("--group", action="store", dest="group",
+    migrateCmd.add_argument("--group", action="store", dest="group",
         help=f"name of the group to be used in the generated policy. The default group is '{defaultGroup}'.")
+
+    kmrepoCmd = cmdParsers.add_parser('kmrepo', 
+        help="Manage the km repo. This command is used to create caches of the KM Repository which can be distributed with the product " +
+            "KM Repository caches are slim version of the KM repository which just contain the information the utility needs.")
+
+    kmrepoCmd.add_argument('-r','--repository', action="store", dest="repositoryDir",
+        help=f"path to the bmc repository. The default path is '{defaultRepositoryDir}'. The repository is needed to gather information about solutions to be able to create policies.")
+
+    kmrepoCmd.add_argument('--version', action="store", dest="version", required=True,
+        help=f"path to the bmc repository. The default path is '{defaultRepositoryDir}'. The repository is needed to gather information about solutions to be able to create policies.")
+
+    kmrepoCmd.add_argument('--cache', action="store", dest="cache", required=False,
+        help=f"path to the bmc repository. The default path is '{defaultRepositoryDir}'. The repository is needed to gather information about solutions to be able to create policies.")
 
     return parser.parse_args()
 
+
 def getDefaults(args):
     defaults = {}
-    defaults["repositoryDir"] = args.repositoryDir if args.repositoryDir else defaultRepositoryDir
-    defaults["tenantId"] = args.tenantId if args.tenantId else defaultTenantId
-    defaults["tenantName"] = args.tenantName if args.tenantName else defaultTenantName
-    defaults["agentPrecedence"] = args.precedence if args.precedence else defaultPrecedence
-    defaults["filename"] = args.filename if args.filename else defaultFilename
-    defaults["out"] = args.out if args.out else defaultOut
-    defaults["owner"] = args.owner if args.owner else defaultOwner
-    defaults["shared"] = args.shared
-    defaults["enabled"] = args.enabled
-    defaults["associatedUserGroup"] = args.group if args.group else defaultGroup
+    defaults["repositoryDir"] = args.repositoryDir if hasattr(args, "repositoryDir") and args.repositoryDir != None else defaultRepositoryDir
+    defaults["tenantId"] = args.tenantId if hasattr(args, "tenantId") and args.tenantId != None else defaultTenantId
+    defaults["tenantName"] = args.tenantName if hasattr(args, "tenantName") and args.tenantName != None else defaultTenantName
+    defaults["agentPrecedence"] = args.precedence if hasattr(args, "precedence") and args.precedence != None else defaultPrecedence
+    defaults["filename"] = args.filename if hasattr(args, "filename") and args.filename != None else defaultFilename
+    defaults["out"] = args.out if hasattr(args, "out") and args.out != None else defaultOut
+    defaults["owner"] = args.owner if hasattr(args, "owner") and args.owner != None else defaultOwner
+    defaults["cache"] = args.cache if hasattr(args, "cache") and args.cache != None else defaultCache
+    defaults["shared"] = args.shared if hasattr(args, "shared") and args.shared != None else False
+    defaults["enabled"] = args.enabled if hasattr(args, "enabled") and args.enabled != None else False
+    defaults["associatedUserGroup"] = args.group if hasattr(args, "group") and args.group != None else defaultGroup
+    defaults["version"] = args.version if hasattr(args, "version") and args.version else "unknown"
  
     return defaults
 
 def dump(policies, out):
     for policy in policies.values():
         with open(f"{policy['name']}.mo", 'w') as fp:
-            json.dump([policy], fp)    
+            json.dump([policy], fp)
+
+def getKMRepository(cachedir, repositorydir, version):
+    if repositorydir != None:
+        kmRepository = KMRepository(f"{repositorydir}{os.path.set}bmc_products{os.path.sep}kmfiles")
+        kmRepository.load()
+
+    elif version != None:
+        kmRepository = KMRepository()
+        kmRepository.loadCache(f"{cachedir}{os.path.sep}{version}")
+
+    else:
+        # get the highest version
+        l = glob.glob(f"{cachedir}{os.path.sep}*")
+        l.sort(reverse=True)
+        kmRepository = KMRepository()
+        kmRepository.loadCache(l[0])
+
+    return kmRepository
+
+
+def migrateCmd(kmRepository):
+    # load the Threshold File
+    thresholdSet = FileThresholdSet("/Users/martin/Downloads/clm-aus-018821_AllInstanceThresholdSettings_2020_08_25_23_22_25.csv")
+    thresholdSet.load()
+
+    # Migrate Thresholds
+    instanceThresholdMigrator = InstanceThresholdMigrator(thresholdSet)
+    configurations = instanceThresholdMigrator.migrate()
+
+    # Generate Policies
+    policyFactory = PolicyFactory(kmRepository, defaults)
+    policyFactory.configurations.extend(configurations)
+    policies = policyFactory.generatePolicies()
+
+    # Write Policies to file
+    dump(policies, defaults["out"])
+
+def kmrepoCmd():
+    kmRepository = KMRepository(f"{defaults['repositoryDir']}{os.path.sep}bmc_products{os.path.sep}kmfiles")
+    kmRepository.load()
+    kmRepository.saveCache(defaults['cache'], defaults['version'])
 
 #-----------------------
 # Main
 #-----------------------
-
 
 version = "1.0.0"
 
@@ -369,25 +443,13 @@ logger.info(f"{__file__} Threshold Migration Utility Version {version} (c) 2020 
 args = parseArguments()
 defaults = getDefaults(args)
 
-# Load the KM Repository
-kmRepository = KMRepository("/Users/martin/Development/pcm2cma/in/bmc_products/kmfiles/")
-kmRepository.load()
+if args.cmd == "migrate":
+    kmRepository = getKMRepository(defaults["cache"], args.repositoryDir, args.version) 
+    migrateCmd(kmRepository)
 
-# load the Threshold File
-thresholdSet = FileThresholdSet("/Users/martin/Downloads/clm-aus-018821_AllInstanceThresholdSettings_2020_08_25_23_22_25.csv")
-thresholdSet.load()
+elif args.cmd == "kmrepo":
+    kmrepoCmd(args.version, args.repositoryDir)
 
-# Migrate Thresholds
-instanceThresholdMigrator = InstanceThresholdMigrator(thresholdSet)
-configurations = instanceThresholdMigrator.migrate()
-
-# Generate Policies
-policyFactory = PolicyFactory(kmRepository, defaults)
-policyFactory.configurations.extend(configurations)
-policies = policyFactory.generatePolicies()
-
-# Write Policies to file
-dump(policies, defaults["out"])
-
+else: logger.error(f"Unknown command '{args.cmd}'used in command line.")
 
 logger.info("done.")

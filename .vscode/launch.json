@@ -8,10 +8,10 @@
             "name": "migrate",
             "type": "python",
             "request": "launch",
-            "program": "migrate.py",
+            "program": "cmautil",
             "console": "integratedTerminal",
             "args": [
-                
+                "migrate"
             ]
         }
     ]
