@@ -97,7 +97,6 @@ class InstanceThresholdMigrator():
                     "threshold": threshold["value"]
                 },
                 "instanceName": threshold["instance"],
-                "matchDeviceName": "???",
                 "type": threshold["thresholdType"]
             })
 
@@ -134,9 +133,9 @@ class FileThresholdSet(ThresholdSet):
                         "outsideBasline": row[10],
                         "autoClose": row[11],
                         "predict": row[12],
-                        "minSampleWindow": row[13],
+                        "minSampleWindow": row[13] if row[13] != "" else None,
                         "baselineType": row[14],
-                        "absoluteDeviation": row[15],
+                        "absoluteDeviation": row[15] if row[15] != "" else None,
                         "deviation": row[16],
                         "suppressEvents": row[17],
                         "thresholdType": row[18].lower()
@@ -216,9 +215,9 @@ class PolicyFactory():
 
         if not found:
             attribute = {
-                "active": "???",
+                "active": -1,
                 "attributeName": configuration["attribute"],
-                "regEx": "???",
+                "regEx": False,
                 "thresholds": []
             }
 
@@ -228,7 +227,7 @@ class PolicyFactory():
         attribute["thresholds"].append({
             "details": configuration["details"],
             "instanceName": configuration["instanceName"],
-            "matchDeviceName": configuration["matchDeviceName"],
+            "matchDeviceName": False,
             "type": configuration["type"]
         })
 
@@ -355,7 +354,7 @@ def getDefaults(args):
 def dump(policies, out):
     for policy in policies.values():
         with open(f"{policy['name']}.mo", 'w') as fp:
-            json.dump(policy, fp)    
+            json.dump([policy], fp)    
 
 #-----------------------
 # Main
