@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import csv
 import os
 import re
@@ -75,6 +76,7 @@ class InstanceThresholdMigrator():
         for threshold in self.thresholds:
             configurations.append({
                 "agent": threshold["agent"],
+                "port": threshold["port"],
                 "solution": None,
                 "monitorType": threshold["monitorType"],
                 "attribute": threshold["attribute"],
@@ -113,7 +115,8 @@ class FileThresholdSet(ThresholdSet):
             for row in reader:
                 if row[19] == "false":
                     self.set.append({
-                        "agent": row[0],
+                        "agent": row[0].split(':')[0],
+                        "port": row[0].split(':')[1],
                         "monitorType": row[1],
                         "device": row[2],
                         "instance": row[3],
@@ -147,19 +150,22 @@ class PolicyFactory():
         policies = {}
         for configuration in self.configurations:
             # no agent policy for this agent has been created
-            if not configuration["agent"] in policies:
-                policies[configuration["agent"]] = self.createAgentPolicy(configuration["agent"])
+            agent = f"{configuration['agent']}:{configuration['port']}"
+            if not agent in policies:
+                policies[agent] = self.createAgentPolicy(configuration["agent"], configuration["port"])
 
             # configuration is a server threshold configuration
             if configuration["configurationType"] == "serverThresholdConfiguration":
                 configuration["solution"] = self.kmRepository.monitors[configuration["monitorType"]]["solution"]
                 configuration["release"] = self.kmRepository.monitors[configuration["monitorType"]]["release"]
 
-                self.generateServerThresholdConfiguration(policies[configuration["agent"]], configuration)
+                self.generateServerThresholdConfiguration(policies[agent], configuration)
 
         return policies
 
     def generateServerThresholdConfiguration(self, policy, configuration):
+        agent = configuration["agent"]
+        port = configuration["port"]
         if not "serverThresholdConfiguration" in policy:
             policy["serverThresholdConfiguration"] = {
                 "solutionThresholds": []
@@ -222,14 +228,14 @@ class PolicyFactory():
         })
 
 
-    def createAgentPolicy(self, agent):
+    def createAgentPolicy(self, agent, port):
         return {
-            "agentSelectionCriteria": "???",
+            "agentSelectionCriteria": f"agentName EQUALS \"{agent}\" AND agentPort NUMBER_EQUALS \"{port}\"",
             "associatedUserGroup": self.defaults["associatedUserGroup"] if "associatedUserGroup" in self.defaults else "Administrators",
-            "description": self.defaults["description"] if "description" in self.defaults else "Auto Generated Policy",
+            "description": self.defaults["description"] if "description" in self.defaults else "Auto Generated Agent Policy",
             "enabled": self.defaults["enabled"] if "enabled" in self.defaults else False,
             "id": "???",
-            "name": f"{agent}_Thresholds",
+            "name": f"{agent}_{port}_Thresholds",
             "owner": self.defaults["owner"] if "owner" in self.defaults else "admin",
             "precedence": self.defaults["agentPrecedence"] if "agentPrecedence" in self.defaults else "399",
             "shared": self.defaults["shared"] if "shared" in self.defaults else False,
