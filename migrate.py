@@ -178,14 +178,14 @@ class PolicyFactory():
         # Generate solution
         found = False
         for solution in policy["serverThresholdConfiguration"]["solutionThresholds"]:
-            if solution["solutionName"] == configuration["solution"] and solution["release"] == configuration["release"]:
+            if solution["solutionName"] == configuration["solution"] and solution["solutionVersion"] == configuration["release"]:
                 found = True
                 break
 
         if not found:
             solution = {
                 "solutionName": configuration["solution"],
-                "release": configuration["release"],
+                "solutionVersion": configuration["release"],
                 "monitors": [] 
             }
 
