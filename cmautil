@@ -54,6 +54,7 @@ class InstanceThresholdMigrator():
         self.baselineMap = {
             "Not Enabled": "notEnabled",
             "Auto": "auto",
+            "Auto Baseline": "auto",
             "Hourly Baseline": "hourly",
             "Daily Baseline": "daily",
             "Weekly Baseline": "weekly",
