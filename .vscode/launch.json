@@ -11,8 +11,27 @@
             "program": "cmautil",
             "console": "integratedTerminal",
             "args": [
-                "migrate"
+                "migrate",
+                "--thresholds",
+                "/Users/martin/Downloads/tsim-blr-win01_AllInstanceThresholdSettings_2020_07_26_19_15_45.csv"
             ]
+        },
+        {
+            "name": "migrate-load",
+            "type": "python",
+            "request": "launch",
+            "program": "cmautil",
+            "console": "integratedTerminal",
+            "args": [
+                "--load",
+                "job1.mig"
+            ]
+        },        {
+            "name": "current",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
         }
     ]
 }
