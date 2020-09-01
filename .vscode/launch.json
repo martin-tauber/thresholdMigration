@@ -8,12 +8,12 @@
             "name": "migrate",
             "type": "python",
             "request": "launch",
-            "program": "cmautil",
+            "program": "cmautil.py",
             "console": "integratedTerminal",
             "args": [
                 "migrate",
                 "--thresholds",
-                "/Users/martin/Downloads/tsim-blr-win01_AllInstanceThresholdSettings_2020_07_26_19_15_45.csv"
+                "/Users/martin/Downloads/clm-aus-018821_AllInstanceThresholdSettings_2020_08_25_23_22_25.csv"
             ]
         },
         {

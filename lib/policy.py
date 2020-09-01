@@ -13,13 +13,13 @@ class PolicyFactory():
     def __init__(self, kmRepository, tenantId, tenantName, shared, enabled, precedence, owner, group):
         self.configurations = []
         self.kmRepository = kmRepository
-        self.tenantId = tenantId,
-        self.tenantName = tenantName,
-        self.shared = shared,
-        self.enabled = enabled,
-        self.precedence = precedence,
-        self.owner = owner,
-        self.group = group,
+        self.tenantId = tenantId
+        self.tenantName = tenantName
+        self.shared = shared
+        self.enabled = enabled
+        self.precedence = precedence
+        self.owner = owner
+        self.group = group
 
     def generatePolicies(self):
         logger.info("Generating policies ...")
@@ -100,7 +100,18 @@ class PolicyFactory():
 
         # Generate Threshold
         attribute["thresholds"].append({
-            "details": configuration["details"],
+            "details": {
+                "absoluteDeviation": configuration["absoluteDeviation"],
+                "autoClose": configuration["autoClose"],
+                "comparison": configuration["comparison"],
+                "durationInMins": configuration["durationInMins"],
+                "minimumSamplingWindow": configuration["minimumSamplingWindow"],
+                "outsideBaseline": configuration["outsideBaseline"],
+                "percentDeviation": configuration["percentDeviation"],
+                "predict": configuration["predict"],
+                "severity": configuration["severity"],
+                "threshold": configuration["threshold"]
+            },
             "instanceName": configuration["instanceName"],
             "matchDeviceName": False,
             "type": configuration["type"]

@@ -1,4 +1,6 @@
 import csv
+import pandas as pd
+import numpy as np
 
 from .logger import LoggerFactory
 
@@ -60,18 +62,18 @@ class InstanceThresholdMigrator():
                     "monitorType": threshold["monitorType"],
                     "attribute": threshold["attribute"],
                     "configurationType": "serverThresholdConfiguration",
-                    "details" : {
-                        "absoluteDeviation" : threshold["absoluteDeviation"],
-                        "autoClose": threshold["autoClose"],
-                        "comparison": self.absoluteConditionMap[threshold["condition"]] if threshold["thresholdType"] == "absolute" else self.conditionMap[threshold["condition"]] ,
-                        "durationInMins": threshold["duration"],
-                        "minimumSamplingWindow": threshold["minSampleWindow"],
-                        "outsideBaseline": self.baselineMap[threshold["outsideBasline"]],
-                        "percentDeviation": threshold["deviation"],
-                        "predict": threshold["predict"],
-                        "severity": threshold["severity"],
-                        "threshold": threshold["value"]
-                    },
+                    # Details
+                    "absoluteDeviation" : threshold["absoluteDeviation"],
+                    "autoClose": threshold["autoClose"],
+                    "comparison": self.absoluteConditionMap[threshold["condition"]] if threshold["thresholdType"] == "absolute" else self.conditionMap[threshold["condition"]] ,
+                    "durationInMins": threshold["duration"],
+                    "minimumSamplingWindow": threshold["minSampleWindow"],
+                    "outsideBaseline": self.baselineMap[threshold["outsideBasline"]],
+                    "percentDeviation": threshold["deviation"],
+                    "predict": threshold["predict"],
+                    "severity": threshold["severity"],
+                    "threshold": threshold["value"],
+
                     "instanceName": threshold["instance"],
                     "type": threshold["thresholdType"]
                 })
@@ -82,9 +84,30 @@ class InstanceThresholdMigrator():
 
         return configurations
 
+    def optimize(self, configurations):
+        return pd.DataFrame(configurations).fillna('').groupby([
+            "monitorType",
+            "attribute",
+            "configurationType",
+            "absoluteDeviation",
+            "autoClose",
+            "comparison",
+            "durationInMins",
+            "minimumSamplingWindow",
+            "outsideBaseline",
+            "percentDeviation",
+            "predict",
+            "severity",
+            "threshold",
+            "instanceName",
+            "type"
+        ]).agg(["count"])
+
+
 class ThresholdSet():
     def __init__(self):
-        selt.set = []
+        self.set = []
+
         
 class FileThresholdSet(ThresholdSet):
     def __init__(self, filenames):
