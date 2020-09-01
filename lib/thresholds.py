@@ -1,8 +1,10 @@
 import csv
+import traceback
 import pandas as pd
 import numpy as np
 
 from .logger import LoggerFactory
+from lib.policy import InstanceThresholdConfiguration
 
 logger = LoggerFactory.getLogger(__name__)
 
@@ -10,8 +12,9 @@ logger = LoggerFactory.getLogger(__name__)
 # Thresholds
 #-----------------------
 class InstanceThresholdMigrator():
-    def __init__(self, thresholds):
+    def __init__(self, thresholds, kmRepository):
         self.thresholds = thresholds.set
+        self.kmRepository = kmRepository
 
         self.conditionMap = {
             ">": "GREATER_THAN",
@@ -55,53 +58,39 @@ class InstanceThresholdMigrator():
         
         for threshold in self.thresholds:
             try:
-                configurations.append({
-                    "agent": threshold["agent"],
-                    "port": threshold["port"],
-                    "solution": None,
-                    "monitorType": threshold["monitorType"],
-                    "attribute": threshold["attribute"],
-                    "configurationType": "serverThresholdConfiguration",
-                    # Details
-                    "absoluteDeviation" : threshold["absoluteDeviation"],
-                    "autoClose": threshold["autoClose"],
-                    "comparison": self.absoluteConditionMap[threshold["condition"]] if threshold["thresholdType"] == "absolute" else self.conditionMap[threshold["condition"]] ,
-                    "durationInMins": threshold["duration"],
-                    "minimumSamplingWindow": threshold["minSampleWindow"],
-                    "outsideBaseline": self.baselineMap[threshold["outsideBasline"]],
-                    "percentDeviation": threshold["deviation"],
-                    "predict": threshold["predict"],
-                    "severity": threshold["severity"],
-                    "threshold": threshold["value"],
+                configurations.append(InstanceThresholdConfiguration(
+                    agent = threshold["agent"],
+                    port = threshold["port"],
+                    solution = self.kmRepository.monitors[threshold["monitorType"]]["solution"],
+                    release = self.kmRepository.monitors[threshold["monitorType"]]["release"],
+                    monitorType = threshold["monitorType"],
+                    attribute = threshold["attribute"],
 
-                    "instanceName": threshold["instance"],
-                    "type": threshold["thresholdType"]
-                })
+                    # Details
+                    absoluteDeviation = threshold["absoluteDeviation"],
+                    autoClose = threshold["autoClose"],
+                    comparison = self.absoluteConditionMap[threshold["condition"]] if threshold["thresholdType"] == "absolute" else self.conditionMap[threshold["condition"]] ,
+                    durationInMins = threshold["duration"],
+                    minimumSamplingWindow = threshold["minSampleWindow"],
+                    outsideBaseline = self.baselineMap[threshold["outsideBaseline"]],
+                    percentDeviation = threshold["deviation"],
+                    predict = threshold["predict"],
+                    severity = threshold["severity"],
+                    threshold = threshold["value"],
+
+                    instanceName = threshold["instance"],
+                    type = threshold["thresholdType"]
+                ))
             except Exception as error:
                 logger.error("An unexpected exception occured while migrating instance threshold. Continuing processing but entry is ignored.")
                 logger.error(f"agent: {threshold['agent']}, port: {threshold['port']}, monitorType: {threshold['monitorType']}, attribute: {threshold['attribute']}, instance: {threshold['instance']}, type: {threshold['thresholdType']}")
                 logger.error(error)
+                logger.error(traceback.format_exc())
 
         return configurations
 
-    def optimize(self, configurations):
-        return pd.DataFrame(configurations).fillna('').groupby([
-            "monitorType",
-            "attribute",
-            "configurationType",
-            "absoluteDeviation",
-            "autoClose",
-            "comparison",
-            "durationInMins",
-            "minimumSamplingWindow",
-            "outsideBaseline",
-            "percentDeviation",
-            "predict",
-            "severity",
-            "threshold",
-            "instanceName",
-            "type"
-        ]).agg(["count"])
+
+
 
 
 class ThresholdSet():
@@ -145,7 +134,7 @@ class FileThresholdSet(ThresholdSet):
                                 "condition": row[7],
                                 "value": row[8],
                                 "uom": row[9],
-                                "outsideBasline": row[10],
+                                "outsideBaseline": row[10],
                                 "autoClose": row[11],
                                 "predict": row[12],
                                 "minSampleWindow": row[13] if row[13] != "" else None,

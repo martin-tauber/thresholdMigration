@@ -101,11 +101,11 @@ def migrateCmd(repositoryDir, cacheDir, version, outputPath, thresholdFilenames,
     thresholdSet.load()
 
     # Migrate Thresholds
-    instanceThresholdMigrator = InstanceThresholdMigrator(thresholdSet)
+    instanceThresholdMigrator = InstanceThresholdMigrator(thresholdSet, kmRepository)
     configurations = instanceThresholdMigrator.migrate()
 
     # Generate Policies
-    policyFactory = PolicyFactory(kmRepository, tenantId, tenantName, shared, enabled, precedence, owner, group)
+    policyFactory = PolicyFactory(tenantId, tenantName, shared, enabled, precedence, owner, group)
     policyFactory.configurations.extend(configurations)
     policies = policyFactory.generatePolicies()
 
