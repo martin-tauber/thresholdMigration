@@ -144,6 +144,6 @@ class PolicyFactory():
         os.makedirs(path, exist_ok = True)
         for policy in policies.values():
             with open(f"{path}{os.path.sep}{policy['name']}.mo", 'w') as fp:
-                json.dump([policy], fp)        
+                json.dump([policy], fp, indent = 4)        
 
 

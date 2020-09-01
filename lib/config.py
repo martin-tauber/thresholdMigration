@@ -41,7 +41,7 @@ class CDefault():
     shared = False
     enabled = False
     owner = "admin"
-    group = "Adminitrators"
+    group = "Administrators"
 
 cdefault = CDefault()
 
