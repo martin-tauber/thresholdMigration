@@ -79,13 +79,13 @@ def parseArguments():
         help="Manage the km repo. This command is used to create caches of the KM Repository which can be distributed with the product " +
             "KM Repository caches are slim version of the KM repository which just contain the information the utility needs.")
 
-    kmrepoCmd.add_argument('-r','--repository', action="store", dest="repositoryDir",
+    kmrepoCmd.add_argument('-r','--repository', action="store", dest=ckey.repositoryDir,
         help=f"path to the bmc repository. The default path is \'{cdefault.repositoryDir}\'. The repository is needed to gather information about solutions to be able to create policies.")
 
-    kmrepoCmd.add_argument('--cache', action="store", dest="cacheDir", required=False,
+    kmrepoCmd.add_argument('--cache', action="store", dest=ckey.cacheDir, required=False,
         help=f"path to the repository cache directory. The default path is \'{cdefault.cacheDir}\'.")
 
-    kmrepoCmd.add_argument('--version', action="store", dest="version",
+    kmrepoCmd.add_argument('--version', action="store", dest=ckey.repositoryVersion,
         help=f"Version of the repository to be used. If no version is specified, the latest version found in the repository cache will be used.")
 
 
@@ -102,20 +102,18 @@ def migrateCmd(repositoryDir, cacheDir, version, outputPath, thresholdFilenames,
 
     # Migrate Thresholds
     instanceThresholdMigrator = InstanceThresholdMigrator(thresholdSet, kmRepository)
-    configurations = instanceThresholdMigrator.migrate()
+    agentConfigurations = instanceThresholdMigrator.migrate()
 
     # Generate Policies
     policyFactory = PolicyFactory(tenantId, tenantName, shared, enabled, precedence, owner, group)
-    policyFactory.configurations.extend(configurations)
-    policies = policyFactory.generatePolicies()
+    (policies, tags) = policyFactory.generatePolicies(agentConfigurations)
 
     # Write Policies to file
     PolicyFactory.save(policies, outputPath)
 
 def kmrepoCmd(repositoryDir, cacheDir, version):
-    kmRepository = KMRepository(f"{config.repositoryDir.value}{os.path.sep}bmc_products{os.path.sep}kmfiles")
-    kmRepository.load()
-    kmRepository.saveCache(config.cache.value, config.cache.version)
+    kmRepository = KMRepository(f"{repositoryDir}{os.path.sep}bmc_products{os.path.sep}kmfiles")
+    kmRepository.save(cacheDir, version)
 
 
 def save(args):

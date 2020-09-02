@@ -13,7 +13,7 @@
             "args": [
                 "migrate",
                 "--thresholds",
-                "/Users/martin/Downloads/clm-aus-018821_AllInstanceThresholdSettings_2020_08_25_23_22_25.csv"
+                "/Users/martin/Downloads/tsim-blr-win01_AllInstanceThresholdSettings_2020_07_26_19_15_45.csv"
             ]
         },
         {
@@ -26,7 +26,22 @@
                 "--load",
                 "job1.mig"
             ]
-        },        {
+        },
+        {
+            "name": "kmrepo",
+            "type": "python",
+            "request": "launch",
+            "program": "cmautil.py",
+            "console": "integratedTerminal",
+            "args": [
+                "kmrepo",
+                "-r",
+                "/Users/martin/Development/pcm2cma/in",
+                "--version",
+                "x"
+            ]
+        },
+        {
             "name": "current",
             "type": "python",
             "request": "launch",

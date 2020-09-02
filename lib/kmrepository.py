@@ -42,7 +42,7 @@ class KMRepository():
                             "minorVersion": root.attrib["minorVersion"] if "minorVersion" in root.attrib else None,
                             "package": root.attrib["package"] if "package" in root.attrib else None,
                             "productcode": root.attrib["productcode"] if "productcode" in root.attrib else None,
-                            "release": root.attrib["release"] if "release" in root.attrib else match[2]
+                            "release": match[2]
                         }
     def loadCache(self, cacheDir, version):
         logger.info(f"Loading KM repository from cache '{cacheDir}{os.path.sep}{version}' ...")
@@ -53,7 +53,7 @@ class KMRepository():
         logger.info(f"Writing KM repsoitory to cache '{path}{os.path.sep}{filename}' ...")
         os.makedirs(path, exist_ok = True)
         with open(f"{path}{os.path.sep}{filename}", 'w') as fp:
-            json.dump(self.monitors, fp)
+            json.dump(self.monitors, fp, indent=4)
 
     @staticmethod
     def get(repositorydir = None, cachedir = None, version = None):

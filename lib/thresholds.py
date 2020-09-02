@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 from .logger import LoggerFactory
-from lib.policy import InstanceThresholdConfiguration
+from lib.policy import AgentConfiguration, InstanceThresholdConfiguration
 
 logger = LoggerFactory.getLogger(__name__)
 
@@ -58,28 +58,30 @@ class InstanceThresholdMigrator():
         
         for threshold in self.thresholds:
             try:
-                configurations.append(InstanceThresholdConfiguration(
+                configurations.append(AgentConfiguration(
                     agent = threshold["agent"],
                     port = threshold["port"],
-                    solution = self.kmRepository.monitors[threshold["monitorType"]]["solution"],
-                    release = self.kmRepository.monitors[threshold["monitorType"]]["release"],
-                    monitorType = threshold["monitorType"],
-                    attribute = threshold["attribute"],
+                    configuration = InstanceThresholdConfiguration(
+                        solution = self.kmRepository.monitors[threshold["monitorType"]]["solution"],
+                        release = self.kmRepository.monitors[threshold["monitorType"]]["release"],
+                        monitorType = threshold["monitorType"],
+                        attribute = threshold["attribute"],
 
-                    # Details
-                    absoluteDeviation = threshold["absoluteDeviation"],
-                    autoClose = threshold["autoClose"],
-                    comparison = self.absoluteConditionMap[threshold["condition"]] if threshold["thresholdType"] == "absolute" else self.conditionMap[threshold["condition"]] ,
-                    durationInMins = threshold["duration"],
-                    minimumSamplingWindow = threshold["minSampleWindow"],
-                    outsideBaseline = self.baselineMap[threshold["outsideBaseline"]],
-                    percentDeviation = threshold["deviation"],
-                    predict = threshold["predict"],
-                    severity = threshold["severity"],
-                    threshold = threshold["value"],
+                        # Details
+                        absoluteDeviation = threshold["absoluteDeviation"],
+                        autoClose = threshold["autoClose"],
+                        comparison = self.absoluteConditionMap[threshold["condition"]] if threshold["thresholdType"] == "absolute" else self.conditionMap[threshold["condition"]] ,
+                        durationInMins = threshold["duration"],
+                        minimumSamplingWindow = threshold["minSampleWindow"],
+                        outsideBaseline = self.baselineMap[threshold["outsideBaseline"]],
+                        percentDeviation = threshold["deviation"],
+                        predict = threshold["predict"],
+                        severity = threshold["severity"],
+                        threshold = threshold["value"],
 
-                    instanceName = threshold["instance"],
-                    type = threshold["thresholdType"]
+                        instanceName = threshold["instance"],
+                        type = threshold["thresholdType"]
+                    )
                 ))
             except Exception as error:
                 logger.error("An unexpected exception occured while migrating instance threshold. Continuing processing but entry is ignored.")
