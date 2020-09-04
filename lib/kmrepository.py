@@ -50,33 +50,29 @@ class KMRepository():
                         if elConfigurationParameter == None: continue
 
                         if elConfigurationParameter[0].tag == "AttributeSet":
-                            self.monitors[file[:-4]]["configuration"] = self.parseAttribute(elConfigurationParameter[0])
+                            (id, attribute) = self.parseAttributeSet(elConfigurationParameter[0], {})
+                            self.monitors[file[:-4]]["configuration"] = attribute
                         else:
+                            (id, attribute) = self.parseAttribute(elConfigurationParameter[0])
                             self.monitors[file[:-4]]["configuration"] = {
-                                elConfigurationParameter[0].attrib["id"]: self.parseAttribute(elConfigurationParameter[0])
+                                id: attribute
                             }
 
-    def parseAttributeSet(self, node):
-        set = {}
-
+    def parseAttributeSet(self, node, set):
         for elChild in node.getchildren():
-            attribute = self.parseAttribute(elChild[0])
-            if "id" in attribute:
-                set[attribute["id"]] = attribute
+            if elChild[0].tag == "AttributeSet":
+                self.parseAttributeSet(elChild[0], set)
+            else:
+                (id, attribute) = self.parseAttribute(elChild[0])
+                set[id] = attribute
 
-        return set
-
-    def parseList(self, node):
-        list = {
-            "type": node.tag,
-        }
-
-        list["attributes"] = self.parseAttributeSet(self, node[0])
+        return (node.attrib["id"] if "id" in node.attrib else None, set)
 
     def parseAttribute(self, child):
         attribute = {}
         if child.tag == "AttributeSet":
-            return self.parseAttributeSet(child)
+            self.parseAttributeSet(child, attribute)
+            return (None, None)
 
         elif child.tag == "List":
             attribute["type"] = child.tag
@@ -84,9 +80,10 @@ class KMRepository():
             attribute["label"] = child.attrib["label"]
             attribute["description"] = child.attrib["description"] if "description" in child else None
             attribute["indexedBy"] = child.attrib["indexedBy"]
-            attribute["attributes"] = self.parseAttributeSet(child[0])
+            (id, attributeSet) = self.parseAttributeSet(child[0], {})
+            attribute["attributes"] = attributeSet
 
-            return attribute
+            return (child.attrib["id"], attribute)
         elif child.tag in ["String", "AccountName", "Boolean"]:
             attribute["type"] = child.tag
             attribute["id"] = child.attrib["id"]
@@ -96,7 +93,7 @@ class KMRepository():
             attribute["default"] = child.attrib["default"] if "default" in child.attrib else None
             attribute["isStorageSecure"] = child.attrib["isStorageSecure"] if "isStorageSecure" in child.attrib else False
 
-            return attribute
+            return (child.attrib["id"], attribute)
         elif child.tag in ["Enum", "MultiSelect"]:
             attribute["type"] = child.tag
             attribute["id"] = child.attrib["id"]
@@ -113,7 +110,7 @@ class KMRepository():
                     "value": enumerator.attrib["value"]
                 }
 
-            return attribute
+            return (child.attrib["id"], attribute)
 
         elif child.tag == "Counter":
             attribute["type"] = child.tag
@@ -126,7 +123,7 @@ class KMRepository():
             attribute["isMandatory"] = child.attrib["isMandatory"] if "isMandatory" in child else False
             attribute["default"] = child.attrib["default"] if "default" in child.attrib else None
 
-            return attribute
+            return (child.attrib["id"], attribute)
         else:
            raise Exception(f"Ignoring tag {child.tag}")
 

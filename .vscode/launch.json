@@ -58,7 +58,7 @@
             "program": "cmautil.py",
             "console": "integratedTerminal",
             "args": [
-                "kmrepo",
+                "cache",
                 "-r",
                 "/Users/martin/Development/pcm2cma/in",
                 "--version",

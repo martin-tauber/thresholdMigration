@@ -5,15 +5,19 @@ import re
 
 from lib.logger import LoggerFactory
 
+from lib.policy import MonitoringConfiguration
+
 logger = LoggerFactory.getLogger(__name__)
 
 class RulesetMigrator():
     def __init__(self, ruleset, solutionPackManager):
-        self.ruleset = ruleset
+        self.rulesets= []
+        self.rulesets.append(ruleset)
         self.solutionPackManager = solutionPackManager
 
     def migrate(self):
-        for ruleset in self.rulesetManager.rulesets:
+        configurations = {}
+        for ruleset in self.rulesets:
             configurations = []
 
             logger.info(f"Migrating Ruleset  '{ruleset.source}' ...")
@@ -46,7 +50,13 @@ class RulesetMigrator():
                                 logger.error(f"An unexpected error occured while compiling value '{pattern['value']}' for pattern '{pattern['pattern']}' of solution '{solutionPack.config['solution']}' type '{solutionPack.config['type']}'.")
                                 logger.error(error)
 
-                        configuration.set(path, value)
+                        self.set(solutionPack, path, value)
+
+    def set(self, solutionPack, path, value):
+        configuration = self.getConfiguration(solutionPack["monitorType"])
+
+#        for segment in path.split("/")[1:]:
+
 
 class RuleSet():
     def __init__(self, filename):
