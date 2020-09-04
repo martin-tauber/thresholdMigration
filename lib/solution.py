@@ -38,7 +38,7 @@ class SolutionPackManager():
                     logger.error(error)
 
     @staticmethod
-    def generateSolutionPackTemplate(kmRepository, monitorType):
+    def generateSolutionPackTemplate(kmRepository, monitorType, path):
         template = {}
         meta = kmRepository.monitors[monitorType]
         template["solution"] = meta["solution"]
@@ -48,8 +48,10 @@ class SolutionPackManager():
         template["patterns"] = SolutionPackManager.generatePatterns(meta["configuration"])
 
         filename = f"{template['solution']}_{template['monitorType']}.tpl"
-        logger.info(f"Writing Solution template to file '{filename}' ...")
-        with open(f"{filename}", 'w') as fp:
+        os.makedirs(path, exist_ok = True)
+
+        logger.info(f"Writing Solution template to file '{path}{os.path.sep}{filename}' ...")
+        with open(f"{path}{os.path.sep}{filename}", 'w') as fp:
             json.dump(template, fp, indent=4)
 
 

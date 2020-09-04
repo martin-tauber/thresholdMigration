@@ -153,9 +153,9 @@ def kmrepoCmd(repositoryDir, cacheDir, version):
     kmRepository = KMRepository(f"{repositoryDir}{os.path.sep}bmc_products{os.path.sep}kmfiles")
     kmRepository.save(cacheDir, version)
 
-def generateSolutionTemplateCmd(repositoryDir, cacheDir, version, monitor):
+def generateSolutionTemplateCmd(repositoryDir, cacheDir, version, monitor, path="solutions"):
     kmRepository = KMRepository.get(repositoryDir, cacheDir, version)
-    SolutionPackManager.generateSolutionPackTemplate(kmRepository, monitor)
+    SolutionPackManager.generateSolutionPackTemplate(kmRepository, monitor, path)
 
 
 def save(args):
