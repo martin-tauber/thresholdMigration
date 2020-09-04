@@ -32,6 +32,7 @@ class KMRepository():
             if match:
                 for file in files:
                     if file.endswith(".xml"):
+                        logger.info(f"parsing {dirname}{os.path.sep}{file} ...")
                         root = ElementTree.parse(f"{dirname}{os.path.sep}{file}").getroot()
 
                         self.monitors[file[:-4]] = {
@@ -44,6 +45,92 @@ class KMRepository():
                             "productcode": root.attrib["productcode"] if "productcode" in root.attrib else None,
                             "release": match[2]
                         }
+
+                        elConfigurationParameter = root.find("./Applications/Application/KMConfigurationMetadata/ConfigurationParameters/ConfigurationParameter")
+                        if elConfigurationParameter == None: continue
+
+                        if elConfigurationParameter[0].tag == "AttributeSet":
+                            self.monitors[file[:-4]]["configuration"] = self.parseAttribute(elConfigurationParameter[0])
+                        else:
+                            self.monitors[file[:-4]]["configuration"] = {
+                                elConfigurationParameter[0].attrib["id"]: self.parseAttribute(elConfigurationParameter[0])
+                            }
+
+    def parseAttributeSet(self, node):
+        set = {}
+
+        for elChild in node.getchildren():
+            attribute = self.parseAttribute(elChild[0])
+            if "id" in attribute:
+                set[attribute["id"]] = attribute
+
+        return set
+
+    def parseList(self, node):
+        list = {
+            "type": node.tag,
+        }
+
+        list["attributes"] = self.parseAttributeSet(self, node[0])
+
+    def parseAttribute(self, child):
+        attribute = {}
+        if child.tag == "AttributeSet":
+            return self.parseAttributeSet(child)
+
+        elif child.tag == "List":
+            attribute["type"] = child.tag
+            attribute["id"] = child.attrib["id"]
+            attribute["label"] = child.attrib["label"]
+            attribute["description"] = child.attrib["description"] if "description" in child else None
+            attribute["indexedBy"] = child.attrib["indexedBy"]
+            attribute["attributes"] = self.parseAttributeSet(child[0])
+
+            return attribute
+        elif child.tag in ["String", "AccountName", "Boolean"]:
+            attribute["type"] = child.tag
+            attribute["id"] = child.attrib["id"]
+            attribute["label"] = child.attrib["label"]
+            attribute["desciption"] = child.attrib["description"] if "description" in child else None
+            attribute["isMandatory"] = child.attrib["isMandatory"] if "isMandatory" in child else False
+            attribute["default"] = child.attrib["default"] if "default" in child.attrib else None
+            attribute["isStorageSecure"] = child.attrib["isStorageSecure"] if "isStorageSecure" in child.attrib else False
+
+            return attribute
+        elif child.tag in ["Enum", "MultiSelect"]:
+            attribute["type"] = child.tag
+            attribute["id"] = child.attrib["id"]
+            attribute["label"] = child.attrib["label"]
+            attribute["desciption"] = child.attrib["description"] if "description" in child else None
+            attribute["isMandatory"] = child.attrib["isMandatory"] if "isMandatory" in child else False
+            attribute["default"] = child.attrib["default"] if "default" in child.attrib else None
+            attribute["enumerators"] = {}
+
+            for enumerator in child.find("./Enumerators"):
+                id = enumerator.attrib["id"] if "id" in enumerator.attrib else enumerator.attrib["value"]
+                attribute["enumerators"][id] = {
+                    "label": enumerator.attrib["label"],
+                    "value": enumerator.attrib["value"]
+                }
+
+            return attribute
+
+        elif child.tag == "Counter":
+            attribute["type"] = child.tag
+            attribute["id"] = child.attrib["id"]
+            attribute["label"] = child.attrib["label"]
+            attribute["minValue"] = child.attrib["minValue"]
+            attribute["maxValue"] = child.attrib["maxValue"]
+
+            attribute["desciption"] = child.attrib["description"] if "description" in child else None
+            attribute["isMandatory"] = child.attrib["isMandatory"] if "isMandatory" in child else False
+            attribute["default"] = child.attrib["default"] if "default" in child.attrib else None
+
+            return attribute
+        else:
+           raise Exception(f"Ignoring tag {child.tag}")
+
+
     def loadCache(self, cacheDir, version):
         logger.info(f"Loading KM repository from cache '{cacheDir}{os.path.sep}{version}' ...")
         with open(f"{cacheDir}{os.path.sep}{version}") as fp:
@@ -58,7 +145,7 @@ class KMRepository():
     @staticmethod
     def get(repositorydir = None, cachedir = None, version = None):
         if repositorydir != None:
-            kmRepository = KMRepository(f"{repositorydir}{os.path.set}bmc_products{os.path.sep}kmfiles")
+            kmRepository = KMRepository(f"{repositorydir}{os.path.sep}bmc_products{os.path.sep}kmfiles")
 
         elif version != None:
             kmRepository = KMRepository(cachedir)

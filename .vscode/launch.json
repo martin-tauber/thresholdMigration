@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "migrate",
+            "name": "migrate-thresholds",
             "type": "python",
             "request": "launch",
             "program": "cmautil.py",
@@ -17,10 +17,22 @@
             ]
         },
         {
+            "name": "migrate-pconfig",
+            "type": "python",
+            "request": "launch",
+            "program": "cmautil.py",
+            "console": "integratedTerminal",
+            "args": [
+                "migrate",
+                "--pconfig",
+                "/Users/martin/Development/pcm2cma/in/pconfig/activ/hst1827963_3181.cfg"
+            ]
+        },
+        {
             "name": "migrate-load",
             "type": "python",
             "request": "launch",
-            "program": "cmautil",
+            "program": "cmautil.py",
             "console": "integratedTerminal",
             "args": [
                 "--load",
@@ -28,7 +40,19 @@
             ]
         },
         {
-            "name": "kmrepo",
+            "name": "solution",
+            "type": "python",
+            "request": "launch",
+            "program": "cmautil.py",
+            "console": "integratedTerminal",
+            "args": [
+                "solution",
+                "--monitor",
+                "FILESYSTEM"
+            ]
+        },
+        {
+            "name": "cache",
             "type": "python",
             "request": "launch",
             "program": "cmautil.py",

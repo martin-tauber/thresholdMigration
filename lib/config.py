@@ -13,6 +13,8 @@ class CKey():
 
     out = "out"
     thresholds = "thresholds"
+    pconfig = "pconfig"
+    monitor = "monitor"
 
     # policy
     tenantId = "tenantId"
@@ -32,7 +34,9 @@ class CDefault():
     cacheDir = "cache"
 
     out = "out"
-    thresholds = "thresholds.csv"
+    thresholds = None
+    pconfig = None
+    monitor = None
 
     # policy
     tenantId = "*"
@@ -99,7 +103,7 @@ class Config():
 
 
 class MigrateConfig(Config):
-    keys = [ckey.repositoryDir, ckey.cacheDir, ckey.repositoryVersion, ckey.out, ckey.thresholds, ckey.tenantId, ckey.tenantName, ckey.precedence, ckey.shared, ckey.enabled, ckey.owner, ckey.group]
+    keys = [ckey.repositoryDir, ckey.cacheDir, ckey.repositoryVersion, ckey.out, ckey.thresholds, ckey.pconfig, ckey.tenantId, ckey.tenantName, ckey.precedence, ckey.shared, ckey.enabled, ckey.owner, ckey.group]
 
     def __init__(self, args):
         super().__init__(args)
@@ -112,4 +116,14 @@ class CacheRepositoryConfig(Config):
 
     def __init__(self,args):
         super().__init__(args)
+        self.setAttributes()
+
+class GenerateSolutionTemplateConfig(Config):
+    keys = [ckey.repositoryDir, ckey.cacheDir, ckey.repositoryVersion, ckey.monitor]
+
+    def __init__(self,args):
+        super().__init__(args)
+        self.setAttributes()        
+
+        if (hasattr(args, ckey.repositoryDir)): self.value[ckey.repositoryDir] = args.repositoryDir     
         self.setAttributes()

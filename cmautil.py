@@ -10,7 +10,9 @@ from lib.logger import LoggerFactory
 from lib.thresholds import InstanceThresholdMigrator, FileThresholdSet
 from lib.kmrepository import KMRepository
 from lib.policy import PolicyFactory
-from lib.config import MigrateConfig, CacheRepositoryConfig, ckey, cdefault, Config
+from lib.config import MigrateConfig, CacheRepositoryConfig, GenerateSolutionTemplateConfig, ckey, cdefault, Config
+from lib.ruleset import RuleSet, RulesetMigrator
+from lib.solution import SolutionPackManager
 
 def parseArguments():
     parser = parser = argparse.ArgumentParser(description='The CMA migration utility allows you to migrate external sources to TrueSight monitoring policies. ')
@@ -49,6 +51,9 @@ def parseArguments():
     migrateCmd.add_argument("-t", "--thresholds", action="store", dest=ckey.thresholds, nargs="+",
         help=f"name of the file which which contains the thresholds exported from tsps. The default file name is \'{cdefault.thresholds}\'")
 
+    migrateCmd.add_argument("--pconfig", action="store", dest=ckey.pconfig,
+        help=f"pconfig file that should be migrated to cma.")
+
     # policy
     migrateCmd.add_argument("--tenantId", action="store", dest=ckey.tenantId,
         help=f"Tenant id to be used in policy generation. The default tenant id is \'{cdefault.tenantId}\'.")
@@ -72,48 +77,85 @@ def parseArguments():
         help=f"name of the group to be used in the generated policy. The default group is \'{cdefault.group}\'.")
 
     #------------------
-    # KMRepo
+    # Cache
     #------------------
 
-    kmrepoCmd = cmdParsers.add_parser('kmrepo', 
+    cacheCmd = cmdParsers.add_parser('cache', 
         help="Manage the km repo. This command is used to create caches of the KM Repository which can be distributed with the product " +
             "KM Repository caches are slim version of the KM repository which just contain the information the utility needs.")
 
-    kmrepoCmd.add_argument('-r','--repository', action="store", dest=ckey.repositoryDir,
+    cacheCmd.add_argument('-r','--repository', action="store", dest=ckey.repositoryDir,
         help=f"path to the bmc repository. The default path is \'{cdefault.repositoryDir}\'. The repository is needed to gather information about solutions to be able to create policies.")
 
-    kmrepoCmd.add_argument('--cache', action="store", dest=ckey.cacheDir, required=False,
+    cacheCmd.add_argument('--cache', action="store", dest=ckey.cacheDir, required=False,
         help=f"path to the repository cache directory. The default path is \'{cdefault.cacheDir}\'.")
 
-    kmrepoCmd.add_argument('--version', action="store", dest=ckey.repositoryVersion,
+    cacheCmd.add_argument('--version', action="store", dest=ckey.repositoryVersion,
         help=f"Version of the repository to be used. If no version is specified, the latest version found in the repository cache will be used.")
 
+    #------------------
+    # KMRepo
+    #------------------
+
+    solutionCmd = cmdParsers.add_parser('solution', 
+        help="create a solution template. A solution tamplate is used to migrate pconfig entries to to CMA. The is the bases for a solution. It must be modified in order to work.")
+
+    solutionCmd.add_argument('-r','--repository', action="store", dest=ckey.repositoryDir,
+        help=f"path to the bmc repository. The default path is \'{cdefault.repositoryDir}\'. The repository is needed to gather information about solutions to be able to create policies.")
+
+    solutionCmd.add_argument('--cache', action="store", dest=ckey.cacheDir, required=False,
+        help=f"path to the repository cache directory. The default path is \'{cdefault.cacheDir}\'.")
+
+    solutionCmd.add_argument('--version', action="store", dest=ckey.repositoryVersion,
+        help=f"Version of the repository to be used. If no version is specified, the latest version found in the repository cache will be used.")
+
+    solutionCmd.add_argument("--monitor", action="store", dest=ckey.monitor, required = True,
+        help="the monitor which should be used to create the solution template for.")
 
     return parser.parse_args()
 
 
-def migrateCmd(repositoryDir, cacheDir, version, outputPath, thresholdFilenames, tenantId, tenantName, shared, enabled, precedence, owner, group):
+def migrateCmd(repositoryDir, cacheDir, version, outputPath, thresholdFilenames, pconfig, tenantId, tenantName, shared, enabled, precedence, owner, group):
     # get the repository
     kmRepository = KMRepository.get(repositoryDir, cacheDir, version)
 
-    # load the Threshold File
-    thresholdSet = FileThresholdSet(thresholdFilenames)
-    thresholdSet.load()
+    if thresholdFilenames != None:
+        # load the Threshold File
+        thresholdSet = FileThresholdSet(thresholdFilenames)
+        thresholdSet.load()
 
-    # Migrate Thresholds
-    instanceThresholdMigrator = InstanceThresholdMigrator(thresholdSet, kmRepository)
-    agentConfigurations = instanceThresholdMigrator.migrate()
+        # Migrate Thresholds
+        instanceThresholdMigrator = InstanceThresholdMigrator(thresholdSet, kmRepository)
+        agentConfigurations = instanceThresholdMigrator.migrate()
 
-    # Generate Policies
-    policyFactory = PolicyFactory(tenantId, tenantName, shared, enabled, precedence, owner, group)
-    (policies, tags) = policyFactory.generatePolicies(agentConfigurations)
+        # Generate Policies
+        policyFactory = PolicyFactory(tenantId, tenantName, shared, enabled, precedence, owner, group)
+        (policies, tags) = policyFactory.generatePolicies(agentConfigurations)
 
-    # Write Policies to file
-    PolicyFactory.save(policies, outputPath)
+        # Write Policies to file
+        PolicyFactory.save(policies, outputPath)
+
+    if pconfig != None:
+        solutionPackManager = SolutionPackManager(path="solutions", repository = kmRepository)
+        ruleset = RuleSet(pconfig)
+
+        rulesetMigrator = RulesetMigrator(ruleset, solutionPackManager)
+        rulesetConfigurations = rulesetMigrator.migrate()
+
+        # Generate Policies
+        policyFactory = PolicyFactory(tenantId, tenantName, shared, enabled, precedence, owner, group)
+        (policies, tags) = policyFactory.generatePolicies(agentConfigurations)
+
+        # Write Policies to file
+        PolicyFactory.save(policies, outputPath)
 
 def kmrepoCmd(repositoryDir, cacheDir, version):
     kmRepository = KMRepository(f"{repositoryDir}{os.path.sep}bmc_products{os.path.sep}kmfiles")
     kmRepository.save(cacheDir, version)
+
+def generateSolutionTemplateCmd(repositoryDir, cacheDir, version, monitor):
+    kmRepository = KMRepository.get(repositoryDir, cacheDir, version)
+    SolutionPackManager.generateSolutionPackTemplate(kmRepository, monitor)
 
 
 def save(args):
@@ -154,6 +196,7 @@ try:
             config.repositoryVersion,
             config.out,
             config.thresholds,
+            config.pconfig,
             config.tenantId,
             config.tenantName,
             config.shared,
@@ -162,9 +205,13 @@ try:
             config.owner,
             config.group)
 
-    elif args.cmd == "kmrepo":
+    elif args.cmd == "cache":
         config = CacheRepositoryConfig(args)
         kmrepoCmd(config.repositoryDir, config.cacheDir, config.repositoryVersion)
+
+    elif args.cmd == "solution":
+        config = GenerateSolutionTemplateConfig(args)
+        generateSolutionTemplateCmd(config.repositoryDir, config.cacheDir, config.repositoryVersion, config.monitor)
 
 
     else: logger.error(f"Unknown command '{args.cmd}' used in command line.")

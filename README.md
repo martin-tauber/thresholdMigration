@@ -7,6 +7,7 @@ You also need to make sure that you have the following python modules installed:
 
 * xml
 * json
+* shlex
 * pandas
 * numpy
 

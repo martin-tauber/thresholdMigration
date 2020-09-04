@@ -83,17 +83,31 @@ class PolicyFactory():
         # build agent config matrix
         uniqueConfigurations = []
         columns = {}
+        # columns['__configid__']={}
+        # columns['__solution__']={}
+        # columns['__monitorType__']={}
+
+        agents = []
+
         for agentConfiguration in agentConfigurations:
             agent = agentConfiguration.agent
             port = agentConfiguration.port
-            
+
+            agentId = f"{agent}:{port}"
+
             if not agentConfiguration.configuration in uniqueConfigurations:
                 uniqueConfigurations.append(agentConfiguration.configuration)
                 
+                # index = uniqueConfigurations.index(agentConfiguration.configuration)
+
+                # columns["__configid__"][index] = agentConfiguration.configuration.getId()
+                # columns["__solution__"][index] = agentConfiguration.configuration.solution
+                # columns["__monitorType__"][index] = agentConfiguration.configuration.monitorType
+            
             index = uniqueConfigurations.index(agentConfiguration.configuration)
             
-            if not f"{agent}:{port}" in columns: columns[f"{agent}:{port}"]={}
-            columns[f"{agent}:{port}"][index]=True
+            if not agentId in columns: columns[agentId]={}
+            columns[agentId][index]=True
 
         logger.info(f"Optimizing policies for {len(columns)} agents ...")
         logger.info(f"Found {len(uniqueConfigurations)} unique configurations.")
@@ -175,6 +189,10 @@ class SolutionConfiguration():
         self.monitorType = monitorType
         self.attribute = attribute
 
+class MonitoringConfiguration(SolutionConfiguration):
+    def __init__(self):
+        pass
+
 class InstanceThresholdConfiguration(SolutionConfiguration):
     def __init__(self, solution, release, monitorType, attribute, absoluteDeviation, autoClose, comparison,
             durationInMins, minimumSamplingWindow, outsideBaseline, percentDeviation, predict, severity, threshold, instanceName, type):
@@ -195,6 +213,9 @@ class InstanceThresholdConfiguration(SolutionConfiguration):
 
         self.instanceName = instanceName
         self.type = type
+
+    def getId(self):
+        return f"{self.solution}-{self.monitorType}-{self.attribute}-{self.instanceName}"
 
     # overriding the __eq__ function to be able to compare two configurations to see if they are equal if
     # all the attributes are equal
