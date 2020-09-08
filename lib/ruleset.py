@@ -25,7 +25,7 @@ class RulesetMigrator():
             for rule in ruleset.rules:
                 self.migrateRule(rule, ruleset.agent, ruleset.port, configurationMap)
             
-        return configurationMap.values()
+        return list(configurationMap.values())
         
     def migrateRule(self, rule, agent, port, configurationMap):
         for solutionPack in self.solutionPackManager.solutionPacks:

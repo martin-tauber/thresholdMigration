@@ -133,7 +133,8 @@ def migrateCmd(repositoryDir, cacheDir, version, outputPath, thresholdFilenames,
         (policies, tags) = policyFactory.generatePolicies(agentConfigurations)
 
         # Write Policies to file
-        PolicyFactory.save(policies, outputPath)
+        PolicyFactory.savePolicies(policies, outputPath)
+        PolicyFactory.saveTags(tags, outputPath)
 
     if pconfig != None:
         solutionPackManager = SolutionPackManager(path="solutions", repository = kmRepository)
@@ -147,7 +148,8 @@ def migrateCmd(repositoryDir, cacheDir, version, outputPath, thresholdFilenames,
         (policies, tags) = policyFactory.generatePolicies(rulesetConfigurations)
 
         # Write Policies to file
-        PolicyFactory.save(policies, outputPath)
+        PolicyFactory.savePolicies(policies, outputPath)
+        PolicyFactory.saveTags(tags, outputPath)
 
 def kmrepoCmd(repositoryDir, cacheDir, version):
     kmRepository = KMRepository(f"{repositoryDir}{os.path.sep}bmc_products{os.path.sep}kmfiles")

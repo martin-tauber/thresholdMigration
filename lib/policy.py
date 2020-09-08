@@ -30,62 +30,71 @@ class PolicyFactory():
         taggedCount = 0
         agentCount = 0
 
-        (configurationMatrix, configurations, id) = self.optimize(agentConfigurations)
-        logger.info(f"base based in '{id}'")
-        for agentId in configurationMatrix:
-            if agentId == id:
-                # generate base policy
-                policy = self.createPolicy(f'TAG EQUALS "BASE"', "BASE",
-                    self.tenantId, self.tenantName, self.shared, self.enabled, self.precedence, self.owner, self.group,
-                    "Auto generated base policy")
-                policies.append(policy)
-                baseCount = baseCount + 1
+        (configurationMatrix, configurations, baseConfigurations) = self.optimize(agentConfigurations)
 
-                i=0
-                for hasConfig in configurationMatrix[agentId]:
-                    if hasConfig:
-                        configurations[i].generate(policy, self)
-                    i = i + 1
+        # generate the base policies
+        for id, configIds in baseConfigurations.items():
+            logger.info(f"Generating base policy 'BASE-{id}' ...")
+            policy = self.createPolicy(f'TAG EQUALS "BASE-{id}"', f"BASE-{id}",
+                self.tenantId, self.tenantName, self.shared, self.enabled, self.precedence, self.owner, self.group,
+                "Auto generated base policy")
+            policies.append(policy)
 
-            if configurationMatrix[id].equals(configurationMatrix[agentId]):
-                tags[agentId]="BASE"
-                taggedCount = taggedCount + 1
-                continue
+            for configId in configIds:
+                configurations[configId].generate(policy, self)
 
-            else:
-                # generate agent policy
+            baseCount = baseCount + 1
+
+        # loop through configurations and see which ones are not covered by the base policies
+        for agentId in configurationMatrix.iloc[:,2:]:
+            agentConfigIds = set(configurationMatrix.loc[configurationMatrix[agentId] == True, agentId].index)
+
+            # loop through base configs and see if they cover the agent
+            for id, baseConfigIds in baseConfigurations.items():
+                if baseConfigIds.issubset(agentConfigIds):
+                    agentConfigIds = agentConfigIds.difference(baseConfigIds)
+
+                    # add agents to tags
+                    if not agentId in tags: tags[agentId] = []
+                    tags[agentId].append(f"BASE-{id}")
+
+            # if we still have config ids we'll create an agent policy
+            if agentConfigIds:
                 (agent, port) = agentId.split(":")
                 policy = self.createPolicy(f'agentName EQUALS \"{agent}\" AND agentPort NUMBER_EQUALS \"{port}\"',
                     f"{agent}-{port}-Thresholds",
                     self.tenantId, self.tenantName, self.shared, self.enabled, self.precedence, self.owner, self.group,
                     "Auto generated agent policy")
                 policies.append(policy)
+                for configId in agentConfigIds:
+                    configurations[configId].generate(policy, self)
+
                 agentCount = agentCount + 1
 
-                i = 0
-                for hasConfig in configurationMatrix[agentId]:
-                    if hasConfig:
-                        configurations[i].generate(policy, self)
-                    i = i + 1
 
-
-        logger.info(f"Generated {len(policies)} policies. ({baseCount} base policies, {agentCount} agent policies, {taggedCount} tagged agents)")
+        logger.info(f"Generated {len(policies)} policies. ({baseCount} base policies, {agentCount} agent policies, {len(tags)} tagged agents)")
         return policies, tags
 
     def optimize(self, agentConfigurations):
+        baseConfigs = {}
+
         (configurationMatrix, configurations) = self.createConfigurationMatrix(agentConfigurations)
 
-        id = self.getBaseId(configurationMatrix)
+        startColumn = configurationMatrix.columns[2]
+        for monitorType in configurationMatrix["__monitorType__"].unique():
+            matrix = configurationMatrix.loc[configurationMatrix.__monitorType__==monitorType,startColumn:]
 
-        return configurationMatrix, configurations, id
+            baseConfigs[monitorType] = self.getBaseConfigIds(matrix)
+
+        return configurationMatrix, configurations, baseConfigs
 
     def createConfigurationMatrix(self, agentConfigurations):
         # build agent config matrix
         uniqueConfigurations = []
         columns = {}
         # columns['__configid__']={}
-        # columns['__solution__']={}
-        # columns['__monitorType__']={}
+        columns['__solution__']={}
+        columns['__monitorType__']={}
 
         agents = []
 
@@ -98,11 +107,11 @@ class PolicyFactory():
             if not agentConfiguration in uniqueConfigurations:
                 uniqueConfigurations.append(agentConfiguration)
                 
-                # index = uniqueConfigurations.index(agentConfiguration.configuration)
+                index = uniqueConfigurations.index(agentConfiguration)
 
                 # columns["__configid__"][index] = agentConfiguration.configuration.getId()
-                # columns["__solution__"][index] = agentConfiguration.configuration.solution
-                # columns["__monitorType__"][index] = agentConfiguration.configuration.monitorType
+                columns["__solution__"][index] = agentConfiguration.solution
+                columns["__monitorType__"][index] = agentConfiguration.monitorType
             
             index = uniqueConfigurations.index(agentConfiguration)
             
@@ -120,11 +129,11 @@ class PolicyFactory():
 
         return configurationMatrix, uniqueConfigurations
 
-    def getBaseId(self, configurationMatrix):
+    def getBaseConfigIds(self, matrix):
         # get cardinal for agent
 
-        allCols = configurationMatrix.columns.tolist()
-        newSearch = configurationMatrix.columns[1:].tolist()
+        allCols = matrix.columns.tolist()
+        newSearch = matrix.columns[1:].tolist()
 
         duplicates = pd.Series(0, index = allCols)
 
@@ -133,7 +142,7 @@ class PolicyFactory():
             newSearch = []
 
             for col2 in searchCols:
-                if configurationMatrix[col1].equals(configurationMatrix[col2]):
+                if matrix[col1].equals(matrix[col2]):
                     duplicates[col1] = duplicates[col1] + 1
                 else:
                     if col2 != searchCols[0]: newSearch.append(col2)
@@ -145,7 +154,7 @@ class PolicyFactory():
         for index, value in result.items():
             logger.info(f"AgentId '{index}' has {value} duplicates.")
 
-        return result.index[0]
+        return set(matrix.loc[matrix[result.index[0]] == True, result.index[0]].index)
     
 
     def createPolicy(self, agentSelectionCriteria, name, tenantId, tenantName, shared, enabled, precedence, owner, group, description):
@@ -182,9 +191,27 @@ class PolicyFactory():
         return self.autoIndexMap[key][value]
 
     @staticmethod
-    def save(policies, path):
+    def savePolicies(policies, path):
         logger.info(f"Writing polycies to directory '{path}' ...")
         os.makedirs(path, exist_ok = True)
         for policy in policies:
             with open(f"{path}{os.path.sep}{policy['name']}.mo", 'w') as fp:
                 json.dump([policy], fp, indent = 4)
+
+    @staticmethod
+    def saveTags(tags, path):
+        logger.info(f"Writing tags to directory '{path}' ...")
+        for agentId, tags in tags.items():
+            with open(f"{path}{os.path.sep}{agentId}.cfg", 'w') as fp:
+                fp.write(f"PATROL_CONFIG{os.linesep}")
+
+                first = True
+                for tag in tags:
+                    if first:
+                        first = False
+                    else:
+                        fp.write(f",{os.linesep}")
+
+                    fp.write(f'"/AgentSetup/Identification/Tags/TAG/{tag}” = {{ REPLACE = "Auto generated tag" }}')
+
+                fp.write(f'{os.linesep}')
