@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 from .logger import LoggerFactory
-from lib.policy import AgentConfiguration, InstanceThresholdConfiguration
+from lib.configuration import AgentConfiguration, InstanceThresholdConfiguration
 
 logger = LoggerFactory.getLogger(__name__)
 

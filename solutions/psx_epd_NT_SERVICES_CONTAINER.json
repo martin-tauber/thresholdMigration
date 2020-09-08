@@ -1,0 +1,73 @@
+{
+    "solution": "psx_epd",
+    "release": "5.1.00.01",
+    "monitorType": "NT_SERVICES_CONTAINER",
+    "profile": "NT_SERVICES",
+    "prefix": "/PSX__P4WinSrvs/PWK__PKMforMSWinOS_config/ServiceMonitoring/",
+    "patterns": [
+        {
+            "pattern": "DisableServiceRestart",
+            "path": "/DisableAutomaticRestart"
+        },
+        {
+            "pattern": null,
+            "path": "/PausedServiceDisableAlert"
+        },
+        {
+            "pattern": "ServiceList/([^/]+)/ServiceName",
+            "path": "/ConfigureService/{match[1]}/ServiceName"
+        },
+        {
+            "pattern": null,
+            "path": "/ConfigureService/%AUTO%/ServiceInternalName"
+        },
+        {
+            "pattern": null,
+            "path": "/ConfigureService/%AUTO%/MonitorAutomaticServices"
+        },
+        {
+            "pattern": null,
+            "path": "/ConfigureService/%AUTO%/MonitorManualServices"
+        },
+        {
+            "pattern": null,
+            "path": "/ConfigureService/%AUTO%/MonitorDisabledServices"
+        },
+        {
+            "pattern": "ServiceList/([^/]+)/SvcConfigVars",
+            "path": "/ConfigureService/{match[1]}/GenerateAlarmOrWarning",
+            "value": "{value.split(',')[1]}"
+        },
+        {
+            "pattern": null,
+            "path": "/ConfigureService/%AUTO%/AlertState"
+        },
+        {
+            "pattern": "ServiceList/([^/]+)/SvcConfigVars",
+            "path": "/ConfigureService/{match[1]}/AutoRestart",
+            "value": "{value.split(',')[3]}"
+        },
+        {
+            "pattern": "ServiceList/([^/]+)/SvcConfigVars",
+            "path": "/ConfigureService/{match[1]}/EnableProcessMonitoring",
+            "value": "{value.split(',')[5]}"
+        },
+        {
+            "pattern": "ServiceList/([^/]+)/SvcConfigVars",
+            "path": "/ConfigureService/{match[1]}/MonitorNotRespond",
+            "value": "{value.split(',')[5]}"
+        },
+        {
+            "pattern": null,
+            "path": "/ConfigureService/%AUTO%/ServiceResponseCommand"
+        },
+        {
+            "pattern": null,
+            "path": "/ExcludeServiceList/%AUTO%/ExcludeServiceName"
+        },
+        {
+            "pattern": null,
+            "path": "/ExcludeServiceList/%AUTO%/ExcludeServiceInternalName"
+        }
+    ]
+}

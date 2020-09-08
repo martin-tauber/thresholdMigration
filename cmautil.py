@@ -139,12 +139,12 @@ def migrateCmd(repositoryDir, cacheDir, version, outputPath, thresholdFilenames,
         solutionPackManager = SolutionPackManager(path="solutions", repository = kmRepository)
         ruleset = RuleSet(pconfig)
 
-        rulesetMigrator = RulesetMigrator(ruleset, solutionPackManager)
+        rulesetMigrator = RulesetMigrator(ruleset, solutionPackManager, kmRepository)
         rulesetConfigurations = rulesetMigrator.migrate()
 
         # Generate Policies
         policyFactory = PolicyFactory(tenantId, tenantName, shared, enabled, precedence, owner, group)
-        (policies, tags) = policyFactory.generatePolicies(agentConfigurations)
+        (policies, tags) = policyFactory.generatePolicies(rulesetConfigurations)
 
         # Write Policies to file
         PolicyFactory.save(policies, outputPath)
@@ -216,8 +216,17 @@ try:
 
     else: logger.error(f"Unknown command '{args.cmd}' used in command line.")
 
+
+except RuntimeError as error:
+    logger.error(error)
+    logger.debug(traceback.format_exc())
+
+except RuntimeWarning as warning:
+    logger.warning(warning)
+    logger.debug(traceback.format_exc())
+
 except Exception as exception:
-    logger.error(f"An unexpected error occured during execotion.")
+    logger.error(f"An unexpected error occured during execution.")
     logger.error(exception)
     logger.error(traceback.format_exc())
 

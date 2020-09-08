@@ -5,57 +5,71 @@ import re
 
 from lib.logger import LoggerFactory
 
-from lib.policy import MonitoringConfiguration
+from lib.configuration import MonitoringConfiguration, MonitoringConfigurationFactory, AgentConfiguration
+
 
 logger = LoggerFactory.getLogger(__name__)
 
 class RulesetMigrator():
-    def __init__(self, ruleset, solutionPackManager):
+    def __init__(self, ruleset, solutionPackManager, kmRepository):
         self.rulesets= []
         self.rulesets.append(ruleset)
         self.solutionPackManager = solutionPackManager
+        self.kmRepository = kmRepository
+        self.monitoringConfigurationFactory = MonitoringConfigurationFactory(kmRepository)
 
     def migrate(self):
-        configurations = {}
+        configurationMap = {}
         for ruleset in self.rulesets:
-            configurations = []
-
             logger.info(f"Migrating Ruleset  '{ruleset.source}' ...")
-
             for rule in ruleset.rules:
-                self.migrateRule(rule, configurations)
+                self.migrateRule(rule, configurationMap)
 
-    def migrateRule(self, rule, configurations):
+        configurations = []
+        for id, configuration in configurationMap.items():
+            configurations.append(AgentConfiguration(
+                agent = ruleset.agent,
+                port = ruleset.port,
+                configuration = configuration
+            ))
+            
+        return configurations
+        
+
+    def migrateRule(self, rule, configurationMap):
         for solutionPack in self.solutionPackManager.solutionPacks:
-            configuration = configurations.get(solutionPack.meta)
+            for pattern in solutionPack.patterns:
+                if "pattern" in pattern and pattern["pattern"] != None:
+                    match = re.search(pattern["pattern"], rule["rulename"])
+                    if (match):
+                        if "warn" in pattern:
+                            logger.warn(f"{pattern['warn']} '{rule['rulename']}' ({solutionPack.solution}, {solutionPack.type}, {solutionPack.release}).")
 
-            for pattern in solutionPack.config["patterns"]:
-                match = re.search(pattern["pattern"], rule["rulename"])
-                if (match):
-                    if "warn" in pattern:
-                        logger.warn(f"{pattern['warn']} '{rule['rulename']}' ({solutionPack.solution}, {solutionPack.type}, {solutionPack.version}).")
-
-                    if "path" in pattern:
-                        try:
-                            path = eval('f"{template}"'.format(template = pattern["path"]))
-                        except Exception as error:
-                            logger.error(f"An unexpected error occured while compiling path '{pattern['path']}' for pattern '{pattern['pattern']}' of solution '{solutionPack.config['solution']}' type '{solutionPack.config['type']}'.")
-                            logger.error(error)
-
-                        value = rule["value"]
-                        if "value" in pattern:
+                        if "path" in pattern:
                             try:
-                                value = eval('f"{template}"'.format(template = pattern["value"]))
+                                path = eval('f"' + '{template}'.format(template = pattern["path"]) + '"')
                             except Exception as error:
-                                logger.error(f"An unexpected error occured while compiling value '{pattern['value']}' for pattern '{pattern['pattern']}' of solution '{solutionPack.config['solution']}' type '{solutionPack.config['type']}'.")
+                                logger.error(f"An unexpected error occured while compiling path '{pattern['path']}' for pattern '{pattern['pattern']}' of solution '{solutionPack.config['solution']}' type '{solutionPack.config['type']}'.")
                                 logger.error(error)
 
-                        self.set(solutionPack, path, value)
+                            value = rule["value"]
+                            if "value" in pattern:
+                                try:
+                                    value = eval('f"' + '{template}'.format(template = pattern["value"]) + '"')
+                                except Exception as error:
+                                    logger.error(f"An unexpected error occured while compiling value '{pattern['value']}' for pattern '{pattern['pattern']}' of solution '{solutionPack.solution}' type '{solutionPack.monitorType}'.")
+                                    logger.error(error)
 
-    def set(self, solutionPack, path, value):
-        configuration = self.getConfiguration(solutionPack["monitorType"])
+                            self.set(configurationMap, solutionPack.monitorType, solutionPack.profile, path, value)
 
-#        for segment in path.split("/")[1:]:
+    def set(self, configurations, monitorType, profile, path, value):
+        if monitorType in configurations:
+            configuration = configurations[monitorType]
+        else:
+            configuration = self.monitoringConfigurationFactory.create(monitorType, profile)
+            configurations[monitorType] = configuration
+
+        configuration.set(path, value)
 
 
 class RuleSet():
@@ -63,6 +77,11 @@ class RuleSet():
         logger.info(f"Parsing Ruleset '{filename}' ...")
         self.rules = []
         self.source = filename
+
+        # get agent and port from filename
+        match = re.match(r'(.+)_([^_]+)', os.path.basename(os.path.splitext(filename)[0]))
+        self.agent = match[1]
+        self.port = match[2]
 
         content = open(filename, 'rt').read()
         lexer = shlex.shlex(content, posix=True)

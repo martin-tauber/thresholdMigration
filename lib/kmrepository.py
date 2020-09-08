@@ -101,6 +101,7 @@ class KMRepository():
             attribute["desciption"] = child.attrib["description"] if "description" in child else None
             attribute["isMandatory"] = child.attrib["isMandatory"] if "isMandatory" in child else False
             attribute["default"] = child.attrib["default"] if "default" in child.attrib else None
+            attribute["isStorageSecure"] = child.attrib["isStorageSecure"] if "isStorageSecure" in child.attrib else False
             attribute["enumerators"] = {}
 
             for enumerator in child.find("./Enumerators"):
@@ -122,6 +123,7 @@ class KMRepository():
             attribute["desciption"] = child.attrib["description"] if "description" in child else None
             attribute["isMandatory"] = child.attrib["isMandatory"] if "isMandatory" in child else False
             attribute["default"] = child.attrib["default"] if "default" in child.attrib else None
+            attribute["isStorageSecure"] = child.attrib["isStorageSecure"] if "isStorageSecure" in child.attrib else False
 
             return (child.attrib["id"], attribute)
         else:
@@ -138,6 +140,20 @@ class KMRepository():
         os.makedirs(path, exist_ok = True)
         with open(f"{path}{os.path.sep}{filename}", 'w') as fp:
             json.dump(self.monitors, fp, indent=4)
+
+    def getConfiguration(self, monitorType, path):
+        meta = self.monitors[monitorType]
+        attribute = meta["configuration"]
+
+        skip = False
+        for segment in path.split("/")[1:]:
+            if not skip:
+                attribute = attribute[segment]
+                if attribute["type"] == "List": skip = True
+            else:
+                skip = False
+
+        return attribute
 
     @staticmethod
     def get(repositorydir = None, cachedir = None, version = None):

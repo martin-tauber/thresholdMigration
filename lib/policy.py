@@ -44,7 +44,7 @@ class PolicyFactory():
                 i=0
                 for hasConfig in configurationMatrix[agentId]:
                     if hasConfig:
-                        configurations[i].generate(policy)
+                        configurations[i].generate(policy, self)
                     i = i + 1
 
             if configurationMatrix[id].equals(configurationMatrix[agentId]):
@@ -167,6 +167,20 @@ class PolicyFactory():
             "type": "monitoring"
         }
 
+    autoIndexMap = {}
+
+    def autoIndex(self, key, value):
+        if not key in self.autoIndexMap:
+            self.autoIndexMap[key] = {
+                "counter": 1,
+            }
+
+        if not value in self.autoIndexMap[key]:
+            self.autoIndexMap[key][value] = self.autoIndexMap[key]["counter"]
+            self.autoIndexMap[key]["counter"] = self.autoIndexMap[key]["counter"] + 1
+
+        return self.autoIndexMap[key][value]
+
     @staticmethod
     def save(policies, path):
         logger.info(f"Writing polycies to directory '{path}' ...")
@@ -174,161 +188,3 @@ class PolicyFactory():
         for policy in policies:
             with open(f"{path}{os.path.sep}{policy['name']}.mo", 'w') as fp:
                 json.dump([policy], fp, indent = 4)
-
-
-class AgentConfiguration():
-    def __init__(self, agent, port, configuration):
-        self.agent = agent
-        self.port = port
-        self.configuration = configuration        
-
-class SolutionConfiguration():
-    def __init__(self, solution, release, monitorType, attribute):
-        self.solution = solution
-        self.release = release
-        self.monitorType = monitorType
-        self.attribute = attribute
-
-class MonitoringConfiguration(SolutionConfiguration):
-    def __init__(self):
-        pass
-
-class InstanceThresholdConfiguration(SolutionConfiguration):
-    def __init__(self, solution, release, monitorType, attribute, absoluteDeviation, autoClose, comparison,
-            durationInMins, minimumSamplingWindow, outsideBaseline, percentDeviation, predict, severity, threshold, instanceName, type):
-
-        super().__init__(solution, release, monitorType, attribute)
-
-        # Details
-        self.absoluteDeviation = absoluteDeviation
-        self.autoClose = autoClose
-        self.comparison = comparison
-        self.durationInMins = durationInMins
-        self.minimumSamplingWindow = minimumSamplingWindow
-        self.outsideBaseline = outsideBaseline
-        self.percentDeviation = percentDeviation
-        self.predict = predict
-        self.severity = severity
-        self.threshold = threshold
-
-        self.instanceName = instanceName
-        self.type = type
-
-    def getId(self):
-        return f"{self.solution}-{self.monitorType}-{self.attribute}-{self.instanceName}"
-
-    # overriding the __eq__ function to be able to compare two configurations to see if they are equal if
-    # all the attributes are equal
-    def __eq__(self, other):
-        return self.solution == other.solution and \
-            self.release == other.release and \
-            self.monitorType == other.monitorType and \
-            self.attribute == other.attribute and \
-                \
-            self.absoluteDeviation == other.absoluteDeviation and \
-            self.autoClose == other.autoClose and \
-            self.comparison == other.comparison and \
-            self.durationInMins == other.durationInMins and \
-            self.minimumSamplingWindow == other.minimumSamplingWindow and \
-            self.outsideBaseline == other.outsideBaseline and \
-            self.percentDeviation == other.percentDeviation and \
-            self.predict == other.predict and \
-            self.severity == other.severity and \
-            self.threshold == other.threshold and \
-                \
-            self.instanceName == other.instanceName and \
-            self.type == other.type
-
-    # overriding the __hash__ method to be able to add configurations to an array and ensure that no
-    # duplicates are added to the array
-    def __hash__(self):
-        return hash((
-            self.absoluteDeviation,
-            self.autoClose,
-            self.comparison,
-            self.durationInMins,
-            self.minimumSamplingWindow,
-            self.outsideBaseline,
-            self.percentDeviation,
-            self.predict,
-            self.severity,
-            self.threshold,
-
-            self.instanceName,
-            self.type  
-        ))
-
-
-    def generate(self, policy):
-        if not "serverThresholdConfiguration" in policy:
-            policy["serverThresholdConfiguration"] = {
-                "solutionThresholds": []
-            }
-
-        # Generate solution
-        found = False
-        for solution in policy["serverThresholdConfiguration"]["solutionThresholds"]:
-            if solution["solutionName"] == self.solution and solution["solutionVersion"] == self.release:
-                found = True
-                break
-
-        if not found:
-            solution = {
-                "solutionName": self.solution,
-                "solutionVersion": self.release,
-                "monitors": [] 
-            }
-
-            policy["serverThresholdConfiguration"]["solutionThresholds"].append(solution)
-
-        # Generate monitor
-        found = False
-        for monitor in solution["monitors"]:
-            if monitor["monitorType"] == self.monitorType:
-                found = True
-                break
-
-        if not found:
-            monitor = {
-                "monitorType": self.monitorType,
-                "attributes": []
-            }
-
-            solution["monitors"].append(monitor)
-
-        # Generate attribute
-        found = False
-        for attribute in monitor["attributes"]:
-            if attribute["attributeName"] == self.attribute:
-                found = True
-                break
-
-        if not found:
-            attribute = {
-                "active": -1,
-                "attributeName": self.attribute,
-                "regEx": False,
-                "thresholds": []
-            }
-
-            monitor["attributes"].append(attribute)
-
-        # Generate Threshold
-        attribute["thresholds"].append({
-            "details": {
-                "absoluteDeviation": self.absoluteDeviation,
-                "autoClose": self.autoClose,
-                "comparison": self.comparison,
-                "durationInMins": self.durationInMins,
-                "minimumSamplingWindow": self.minimumSamplingWindow,
-                "outsideBaseline": self.outsideBaseline,
-                "percentDeviation": self.percentDeviation,
-                "predict": self.predict,
-                "severity": self.severity,
-                "threshold": self.threshold
-            },
-            "instanceName": self.instanceName,
-            "matchDeviceName": False,
-            "type": self.type
-        })
-

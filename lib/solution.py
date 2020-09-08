@@ -9,9 +9,10 @@ class SolutionPack():
         with open(filename) as jsonFile:
             config = json.load(jsonFile)
 
-        self.solution = config['solution'] 
+        self.solution = config['solution']
+        self.profile = config['profile'] 
         self.monitorType = config['monitorType']
-        self.version = config['version'] 
+        self.release = config['release'] 
         self.prefix = config["prefix"] 
         self.patterns = config["patterns"]
 
@@ -27,11 +28,12 @@ class SolutionPackManager():
         for subdir, dirs, files in os.walk(path):
             for file in files:
                 try:
-                    filename = f"{subdir}{os.path.sep}{file}"
-                    logger.info(f"Loading solution pack {filename} ...")
+                    if file[-5:] == ".json":
+                        filename = f"{subdir}{os.path.sep}{file}"
+                        logger.info(f"Loading solution pack {filename} ...")
 
-                    solutionPack = SolutionPack(filename, repository)
-                    self.solutionPacks.append(solutionPack)
+                        solutionPack = SolutionPack(filename, repository)
+                        self.solutionPacks.append(solutionPack)
 
                 except Exception as error:
                     logger.error(f"An unexpected error occured while creating solution pack from file '{filename}'.")
@@ -40,9 +42,17 @@ class SolutionPackManager():
     @staticmethod
     def generateSolutionPackTemplate(kmRepository, monitorType, path):
         template = {}
+
+        if not monitorType in kmRepository.monitors:
+            raise RuntimeError(f"Monitor '{monitorType}' not found in repository.")
+
         meta = kmRepository.monitors[monitorType]
+        if not "configuration" in meta:
+            raise RuntimeWarning(f"Monitor '{monitorType}' does not have anything to configure.")
+
         template["solution"] = meta["solution"]
         template["release"] = meta["release"]
+        template["profile"] = "<???>"
         template["monitorType"] = meta["monitorType"]
         template["prefix"] = ""
         template["patterns"] = SolutionPackManager.generatePatterns(meta["configuration"])
@@ -66,7 +76,7 @@ class SolutionPackManager():
 
             else:
                 patterns.append({
-                    "pattern": "<???>",
+                    "pattern": None,
                     "path": f"{prefix}/{attribute['id']}"
                 })
 
