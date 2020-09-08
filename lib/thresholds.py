@@ -87,7 +87,7 @@ class InstanceThresholdMigrator():
                 logger.error("An unexpected exception occured while migrating instance threshold. Continuing processing but entry is ignored.")
                 logger.error(f"agent: {threshold['agent']}, port: {threshold['port']}, monitorType: {threshold['monitorType']}, attribute: {threshold['attribute']}, instance: {threshold['instance']}, type: {threshold['thresholdType']}")
                 logger.error(error)
-                logger.error(traceback.format_exc())
+                logger.debug(traceback.format_exc())
 
         return configurations
 

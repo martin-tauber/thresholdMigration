@@ -65,7 +65,7 @@ class PolicyFactory():
                 i = 0
                 for hasConfig in configurationMatrix[agentId]:
                     if hasConfig:
-                        configurations[i].generate(policy)
+                        configurations[i].generate(policy, self)
                     i = i + 1
 
 

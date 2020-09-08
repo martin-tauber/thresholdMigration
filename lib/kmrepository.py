@@ -5,7 +5,7 @@ import glob
 
 from xml.etree import cElementTree as ElementTree
 
-from .logger import LoggerFactory
+from lib.logger import LoggerFactory
 
 logger = LoggerFactory.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class KMRepository():
         elif cacheDir != None:
             self.loadCache(cacheDir, version)
         else:
-            raise Exception("Argument Error. KMRepository constructor can only contain either 'repositoryDir' or 'cache' argument.")
+            raise RuntimeError("Argument Error. KMRepository constructor can only contain either 'repositoryDir' or 'cache' argument.")
 
     def loadFile(self, repositoryDir):
         logger.info(f"Loading TrueSight repository located in directory '{repositoryDir}' ...")
@@ -127,7 +127,7 @@ class KMRepository():
 
             return (child.attrib["id"], attribute)
         else:
-           raise Exception(f"Ignoring tag {child.tag}")
+           raise RuntimeError(f"Found unexpected tag '{child.tag}' ")
 
 
     def loadCache(self, cacheDir, version):

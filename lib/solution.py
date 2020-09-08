@@ -36,8 +36,8 @@ class SolutionPackManager():
                         self.solutionPacks.append(solutionPack)
 
                 except Exception as error:
-                    logger.error(f"An unexpected error occured while creating solution pack from file '{filename}'.")
-                    logger.error(error)
+                    raise RuntimeError(f"An unexpected error occured while creating solution pack from file '{filename}'. ({error})")
+
 
     @staticmethod
     def generateSolutionPackTemplate(kmRepository, monitorType, path):

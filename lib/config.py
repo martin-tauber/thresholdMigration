@@ -1,10 +1,6 @@
 import json
 import os
 
-from .logger import LoggerFactory
-
-logger = LoggerFactory.getLogger(__name__)
-
 class CKey():
     #repository
     repositoryDir = "repositoryDir"
@@ -78,7 +74,7 @@ class Config():
         with open(filename) as fp:
             config = json.load(fp)
             if config["type"] != type(self).__name__:
-                logger.warn(f"Configuration file is of incorrect type. Found \'{config['type']}\' expected '{type(self).__name__}'. Ignoring configuration.")
+                raise RuntimeError(f"Configuration file is of incorrect type. Found \'{config['type']}\' expected '{type(self).__name__}'.")
 
             else:    
                 for key in config["config"]:

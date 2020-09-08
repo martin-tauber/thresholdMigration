@@ -49,16 +49,14 @@ class RulesetMigrator():
                             try:
                                 path = eval('f"' + '{template}'.format(template = pattern["path"]) + '"')
                             except Exception as error:
-                                logger.error(f"An unexpected error occured while compiling path '{pattern['path']}' for pattern '{pattern['pattern']}' of solution '{solutionPack.config['solution']}' type '{solutionPack.config['type']}'.")
-                                logger.error(error)
+                                raise RuntimeError(f"An unexpected error occured while compiling path '{pattern['path']}' for pattern '{pattern['pattern']}' of solution '{solutionPack.config['solution']}' type '{solutionPack.config['type']}'. ({error})")
 
                             value = rule["value"]
                             if "value" in pattern:
                                 try:
                                     value = eval('f"' + '{template}'.format(template = pattern["value"]) + '"')
                                 except Exception as error:
-                                    logger.error(f"An unexpected error occured while compiling value '{pattern['value']}' for pattern '{pattern['pattern']}' of solution '{solutionPack.solution}' type '{solutionPack.monitorType}'.")
-                                    logger.error(error)
+                                    raise RuntimeError(f"An unexpected error occured while compiling value '{pattern['value']}' for pattern '{pattern['pattern']}' of solution '{solutionPack.solution}' type '{solutionPack.monitorType}'. ({error})")
 
                             self.set(configurationMap, solutionPack.monitorType, solutionPack.profile, path, value)
 
@@ -99,7 +97,7 @@ class RuleSet():
                 self.rules.append(rule)
 
             except TokenException as error:
-                logger.error(f"Found unexpected token '{error.foundToken}' in '{filename}' at {error.lineno}. Expected '{error.expectedToken}'.")
+                raise RuntimeError(f"Found unexpected token '{error.foundToken}' in '{filename}' at {error.lineno}. Expected '{error.expectedToken}'.")
 
                 # recover from error
                 while True:
@@ -112,7 +110,7 @@ class RuleSet():
             token = lexer.get_token()
             if token == lexer.eof: break
             if token != ",":
-                logger.error(f"Found unexpected token '{token}' in '{filename}' at {lexer.lineno}. Expected ','.")
+                raise RuntimeError(f"Found unexpected token '{token}' in '{filename}' at {lexer.lineno}. Expected ','.")
                 break
 
     def _parseRule(self, lexer):
@@ -155,5 +153,4 @@ class RuleSetFactory():
                     self.rulesets.append(ruleset)
 
                 except Exception as error:
-                    logger.error(f"An unexpected error occured while creating ruleset for file '{filename}'.")
-                    logger.error(error)
+                    raise RuntimeError(f"An unexpected error occured while creating ruleset for file '{filename}'. ({error})")
