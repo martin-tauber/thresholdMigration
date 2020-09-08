@@ -5,7 +5,7 @@ import re
 
 from lib.logger import LoggerFactory
 
-from lib.configuration import MonitoringConfiguration, MonitoringConfigurationFactory, AgentConfiguration
+from lib.configuration import MonitoringConfiguration, MonitoringConfigurationFactory
 
 
 logger = LoggerFactory.getLogger(__name__)
@@ -23,20 +23,11 @@ class RulesetMigrator():
         for ruleset in self.rulesets:
             logger.info(f"Migrating Ruleset  '{ruleset.source}' ...")
             for rule in ruleset.rules:
-                self.migrateRule(rule, configurationMap)
-
-        configurations = []
-        for id, configuration in configurationMap.items():
-            configurations.append(AgentConfiguration(
-                agent = ruleset.agent,
-                port = ruleset.port,
-                configuration = configuration
-            ))
+                self.migrateRule(rule, ruleset.agent, ruleset.port, configurationMap)
             
-        return configurations
+        return configurationMap.values()
         
-
-    def migrateRule(self, rule, configurationMap):
+    def migrateRule(self, rule, agent, port, configurationMap):
         for solutionPack in self.solutionPackManager.solutionPacks:
             for pattern in solutionPack.patterns:
                 if "pattern" in pattern and pattern["pattern"] != None:
@@ -58,13 +49,13 @@ class RulesetMigrator():
                                 except Exception as error:
                                     raise RuntimeError(f"An unexpected error occured while compiling value '{pattern['value']}' for pattern '{pattern['pattern']}' of solution '{solutionPack.solution}' type '{solutionPack.monitorType}'. ({error})")
 
-                            self.set(configurationMap, solutionPack.monitorType, solutionPack.profile, path, value)
+                            self.set(configurationMap, agent, port, solutionPack.monitorType, solutionPack.profile, path, value)
 
-    def set(self, configurations, monitorType, profile, path, value):
+    def set(self, configurations, agent, port, monitorType, profile, path, value):
         if monitorType in configurations:
             configuration = configurations[monitorType]
         else:
-            configuration = self.monitoringConfigurationFactory.create(monitorType, profile)
+            configuration = self.monitoringConfigurationFactory.create(agent, port, monitorType, profile)
             configurations[monitorType] = configuration
 
         configuration.set(path, value)

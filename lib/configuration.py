@@ -1,23 +1,30 @@
-from .logger import LoggerFactory
+import json
+
+from lib.logger import LoggerFactory
 
 logger = LoggerFactory.getLogger(__name__)
 
 class AgentConfiguration():
-    def __init__(self, agent, port, configuration):
+    def __init__(self, agent, port, solution, release, monitorType, attribute):
         self.agent = agent
         self.port = port
-        self.configuration = configuration        
 
-class SolutionConfiguration():
-    def __init__(self, solution, release, monitorType, attribute):
         self.solution = solution
         self.release = release
         self.monitorType = monitorType
         self.attribute = attribute
 
-class MonitoringConfiguration(SolutionConfiguration):
-    def __init__(self, solution, release, monitorType, profile, meta):
-        super().__init__(solution, release, monitorType, None)
+        self.config = {}
+
+    def __eq__(self, other):
+        return self.config == other.config and self.solution == other.solution and self.release == other.release and self.monitorType == other.monitorType and self.attribute == other.attribute
+
+    def __hash__(self):
+        return hash(json.dumps(self.config, sort_keys=True))
+
+class MonitoringConfiguration(AgentConfiguration):
+    def __init__(self, agent, port, solution, release, monitorType, profile, meta):
+        super().__init__(agent, port, solution, release, monitorType, None)
         self.profile = profile
         self.meta = meta
 
@@ -161,71 +168,29 @@ class MonitoringConfiguration(SolutionConfiguration):
         return config
 
 
-class InstanceThresholdConfiguration(SolutionConfiguration):
-    def __init__(self, solution, release, monitorType, attribute, absoluteDeviation, autoClose, comparison,
+class InstanceThresholdConfiguration(AgentConfiguration):
+    def __init__(self, agent, port, solution, release, monitorType, attribute, absoluteDeviation, autoClose, comparison,
             durationInMins, minimumSamplingWindow, outsideBaseline, percentDeviation, predict, severity, threshold, instanceName, type):
 
-        super().__init__(solution, release, monitorType, attribute)
+        super().__init__(agent, port, solution, release, monitorType, attribute)
 
         # Details
-        self.absoluteDeviation = absoluteDeviation
-        self.autoClose = autoClose
-        self.comparison = comparison
-        self.durationInMins = durationInMins
-        self.minimumSamplingWindow = minimumSamplingWindow
-        self.outsideBaseline = outsideBaseline
-        self.percentDeviation = percentDeviation
-        self.predict = predict
-        self.severity = severity
-        self.threshold = threshold
+        self.config["absoluteDeviation"] = absoluteDeviation
+        self.config["autoClose"] = autoClose
+        self.config["comparison"] = comparison
+        self.config["durationInMins"] = durationInMins
+        self.config["minimumSamplingWindow"] = minimumSamplingWindow
+        self.config["outsideBaseline"] = outsideBaseline
+        self.config["percentDeviation"] = percentDeviation
+        self.config["predict"] = predict
+        self.config["severity"] = severity
+        self.config["threshold"] = threshold
 
-        self.instanceName = instanceName
-        self.type = type
+        self.config["instanceName"] = instanceName
+        self.config["type"] = type
 
     def getId(self):
         return f"{self.solution}-{self.monitorType}-{self.attribute}-{self.instanceName}"
-
-    # overriding the __eq__ function to be able to compare two configurations to see if they are equal if
-    # all the attributes are equal
-    def __eq__(self, other):
-        return self.solution == other.solution and \
-            self.release == other.release and \
-            self.monitorType == other.monitorType and \
-            self.attribute == other.attribute and \
-                \
-            self.absoluteDeviation == other.absoluteDeviation and \
-            self.autoClose == other.autoClose and \
-            self.comparison == other.comparison and \
-            self.durationInMins == other.durationInMins and \
-            self.minimumSamplingWindow == other.minimumSamplingWindow and \
-            self.outsideBaseline == other.outsideBaseline and \
-            self.percentDeviation == other.percentDeviation and \
-            self.predict == other.predict and \
-            self.severity == other.severity and \
-            self.threshold == other.threshold and \
-                \
-            self.instanceName == other.instanceName and \
-            self.type == other.type
-
-    # overriding the __hash__ method to be able to add configurations to an array and ensure that no
-    # duplicates are added to the array
-    def __hash__(self):
-        return hash((
-            self.absoluteDeviation,
-            self.autoClose,
-            self.comparison,
-            self.durationInMins,
-            self.minimumSamplingWindow,
-            self.outsideBaseline,
-            self.percentDeviation,
-            self.predict,
-            self.severity,
-            self.threshold,
-
-            self.instanceName,
-            self.type  
-        ))
-
 
     def generate(self, policy, policyFactory):
         if not "serverThresholdConfiguration" in policy:
@@ -284,27 +249,27 @@ class InstanceThresholdConfiguration(SolutionConfiguration):
         # Generate Threshold
         attribute["thresholds"].append({
             "details": {
-                "absoluteDeviation": self.absoluteDeviation,
-                "autoClose": self.autoClose,
-                "comparison": self.comparison,
-                "durationInMins": self.durationInMins,
-                "minimumSamplingWindow": self.minimumSamplingWindow,
-                "outsideBaseline": self.outsideBaseline,
-                "percentDeviation": self.percentDeviation,
-                "predict": self.predict,
-                "severity": self.severity,
-                "threshold": self.threshold
+                "absoluteDeviation": self.config["absoluteDeviation"],
+                "autoClose": self.config["autoClose"],
+                "comparison": self.config["comparison"],
+                "durationInMins": self.config["durationInMins"],
+                "minimumSamplingWindow": self.config["minimumSamplingWindow"],
+                "outsideBaseline": self.config["outsideBaseline"],
+                "percentDeviation": self.config["percentDeviation"],
+                "predict": self.config["predict"],
+                "severity": self.config["severity"],
+                "threshold": self.config["threshold"]
             },
-            "instanceName": self.instanceName,
+            "instanceName": self.config["instanceName"],
             "matchDeviceName": False,
-            "type": self.type
+            "type": self.config["type"]
         })
 
 class MonitoringConfigurationFactory():
     def __init__(self, kmRepository):
         self.kmRepository = kmRepository
 
-    def create(self, monitorType, profile):
+    def create(self, agent, port, monitorType, profile):
         meta = self.kmRepository.monitors[monitorType]
 
-        return MonitoringConfiguration(meta["solution"], meta["release"], meta["monitorType"], profile, meta)
+        return MonitoringConfiguration(agent, port, meta["solution"], meta["release"], meta["monitorType"], profile, meta)

@@ -95,8 +95,8 @@ class PolicyFactory():
 
             agentId = f"{agent}:{port}"
 
-            if not agentConfiguration.configuration in uniqueConfigurations:
-                uniqueConfigurations.append(agentConfiguration.configuration)
+            if not agentConfiguration in uniqueConfigurations:
+                uniqueConfigurations.append(agentConfiguration)
                 
                 # index = uniqueConfigurations.index(agentConfiguration.configuration)
 
@@ -104,7 +104,7 @@ class PolicyFactory():
                 # columns["__solution__"][index] = agentConfiguration.configuration.solution
                 # columns["__monitorType__"][index] = agentConfiguration.configuration.monitorType
             
-            index = uniqueConfigurations.index(agentConfiguration.configuration)
+            index = uniqueConfigurations.index(agentConfiguration)
             
             if not agentId in columns: columns[agentId]={}
             columns[agentId][index]=True
