@@ -25,7 +25,7 @@
             "args": [
                 "migrate",
                 "--pconfig",
-                "/Users/martin/Development/pcm2cma/in/pconfig/activ/hst1827963_3181.cfg"
+                "/Users/martin/Development/pcm2cma/in/pconfig/activ/hst182791*_3181.cfg"
             ]
         },
         {

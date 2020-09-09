@@ -13,7 +13,7 @@ logger = LoggerFactory.getLogger(__name__)
 # Policies
 #-----------------------
 class PolicyFactory():
-    def __init__(self, agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify):
+    def __init__(self, agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify, baseThreshold):
         self.agentGroup = agentGroup
         self.tenantId = tenantId
         self.tenantName = tenantName
@@ -24,6 +24,7 @@ class PolicyFactory():
         self.owner = owner
         self.group = group
         self.beautify = beautify
+        self.baseThreshold = baseThreshold
 
     def generatePolicies(self, agentConfigurations):
         logger.info("Generating policies ...")
@@ -70,7 +71,7 @@ class PolicyFactory():
             if agentConfigIds:
                 (agent, port) = agentId.split(":")
                 policy = self.createPolicy(f'agentName EQUALS \"{agent}\" AND agentPort NUMBER_EQUALS \"{port}\"',
-                    f"{agent}-{port}-Thresholds",
+                    f"HOST-{agent}-{port}",
                     self.tenantId, self.tenantName, self.shared, self.enabled, self.agentPrecedence, self.owner, self.group,
                     "Auto generated agent policy")
                 policies.append(policy)
@@ -90,9 +91,14 @@ class PolicyFactory():
 
         startColumn = configurationMatrix.columns[2]
         for monitorType in configurationMatrix["__monitorType__"].unique():
+            logger.info(f"Optimizing policies for monitor '{monitorType}' ...")
             matrix = configurationMatrix.loc[configurationMatrix.__monitorType__==monitorType,startColumn:]
+            logger.info(f"Found {len(matrix)} unique configurations for monitor '{monitorType}'.")
 
-            baseConfigs[monitorType] = self.getBaseConfigIds(matrix)
+
+            configIds = self.getBaseConfigIds(matrix)
+            if configIds != None:
+                baseConfigs[monitorType] = configIds
 
         return configurationMatrix, configurations, baseConfigs
 
@@ -126,7 +132,7 @@ class PolicyFactory():
             if not agentId in columns: columns[agentId]={}
             columns[agentId][index]=True
 
-        logger.info(f"Optimizing policies for {len(columns)} agents ...")
+        logger.info(f"Optimizing policies for {len(columns) - 2} agents ...")
         logger.info(f"Found {len(uniqueConfigurations)} unique configurations.")
 
         configurationMatrix=pd.DataFrame()
@@ -137,7 +143,7 @@ class PolicyFactory():
 
         return configurationMatrix, uniqueConfigurations
 
-    def getBaseConfigIds(self, matrix):
+    def getBaseConfigIds(self, matrix, threshold = 10):
         # get cardinal for agent
 
         allCols = matrix.columns.tolist()
@@ -157,13 +163,20 @@ class PolicyFactory():
 
         # get agent with highest cardinal
         top=5
-        logger.info(f"top {top} duplicate agents with same configuration:")
         result = duplicates.sort_values(ascending=False).head(top)
-        for index, value in result.items():
-            logger.info(f"AgentId '{index}' has {value} duplicates.")
+        # logger.info(f"top {top} duplicate agents with same configuration:")
+        # for index, value in result.items():
+        #     logger.info(f"AgentId '{index}' has {value} duplicates.")
 
-        return set(matrix.loc[matrix[result.index[0]] == True, result.index[0]].index)
-    
+        percent = result[0]/len(matrix.columns)*100
+        percentStr = "{:5.2f}".format(percent)
+
+        if percent >=  self.baseThreshold:
+            logger.info(f"Found base with {result[0]} duplicates ({percentStr}%) on agent '{result.index[0]}'.")
+            return set(matrix.loc[matrix[result.index[0]] == True, result.index[0]].index)
+        else:
+            logger.info(f"No significant number of duplicates found ({percentStr} < {self.baseThreshold}). No base policy created.")
+            return None
 
     def createPolicy(self, agentSelectionCriteria, name, tenantId, tenantName, shared, enabled, precedence, owner, group, description):
         logger.debug(f"Generating agent policy '{name}' ...")
@@ -213,7 +226,9 @@ class PolicyFactory():
         os.makedirs(path, exist_ok = True)
 
         for agentId, tags in tags.items():
-            with open(f"{path}{os.path.sep}{agentId}.cfg", 'w') as fp:
+            (agent, id) = agentId.split(":")
+            
+            with open(f"{path}{os.path.sep}{agent}_{id}.cfg", 'w') as fp:
                 fp.write(f"PATROL_CONFIG{os.linesep}")
 
                 first = True

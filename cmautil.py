@@ -11,7 +11,7 @@ from lib.thresholds import InstanceThresholdMigrator, FileThresholdSet
 from lib.kmrepository import KMRepository
 from lib.policy import PolicyFactory
 from lib.config import MigrateConfig, CacheRepositoryConfig, GenerateSolutionTemplateConfig, ckey, cdefault, Config
-from lib.ruleset import RuleSet, RulesetMigrator
+from lib.ruleset import RuleSetFactory, RulesetMigrator
 from lib.solution import SolutionPackManager
 
 def parseArguments():
@@ -36,7 +36,7 @@ def parseArguments():
     migrateCmd.add_argument("-t", "--thresholds", action="store", dest=ckey.thresholds, nargs="+",
         help=f"name of the file which which contains the thresholds exported from tsps. The default file name is \'{cdefault.thresholds}\'")
 
-    migrateCmd.add_argument("--pconfig", action="store", dest=ckey.pconfig,
+    migrateCmd.add_argument("--pconfig", action="store", dest=ckey.pconfig, nargs="+",
         help=f"pconfig file that should be migrated to cma.")
 
     migrateCmd.add_argument('-r','--repositorydir', action="store", dest=ckey.repositoryDir,
@@ -61,6 +61,9 @@ def parseArguments():
     migrateCmd.add_argument("--agentgroup", action="store", dest=ckey.agentGroup,
         help=f"The name of the agent group migrated. The name is used during policy creation. Policies created will contain this name. For example a base policy created for windows " +
             f"service would be named BASE-<AGENTGROUP>-NT_SERVICE_CONTAINER by default. The default is \'{cdefault.agentGroup}\'.")
+
+    migrateCmd.add_argument("--basethreshold", action="store", dest=ckey.baseThreshold, type=int,
+        help=f"specifies the percentage of duplicates to be found for a base policy to be creates. The default is \'{cdefault.baseThreshold}\'.")
 
     migrateCmd.add_argument("--beautify", action="store_true", dest=ckey.beautify,
         help=f"when creating policy names the monitor name is used. Often the monitor name will have an ending like '_CONTAINER'. If you specify this option, the ending will be " +
@@ -130,7 +133,7 @@ def parseArguments():
     return parser.parse_args()
 
 
-def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFilenames, pconfig, agentGroup, beautify,
+def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFilenames, pconfig, agentGroup, beautify, baseThreshold,
         tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group):
 
     # get the repository
@@ -146,7 +149,7 @@ def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFi
         agentConfigurations = instanceThresholdMigrator.migrate()
 
         # Generate Policies
-        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify)
+        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify, baseThreshold)
         (policies, tags) = policyFactory.generatePolicies(agentConfigurations)
 
         # Write Policies to file
@@ -155,13 +158,13 @@ def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFi
 
     if pconfig != None:
         solutionPackManager = SolutionPackManager(path="solutions", repository = kmRepository)
-        ruleset = RuleSet(pconfig)
+        rulesets = RuleSetFactory(pconfig)
 
-        rulesetMigrator = RulesetMigrator(ruleset, solutionPackManager, kmRepository)
+        rulesetMigrator = RulesetMigrator(rulesets, solutionPackManager, kmRepository)
         rulesetConfigurations = rulesetMigrator.migrate()
 
         # Generate Policies
-        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify)
+        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify, baseThreshold)
         (policies, tags) = policyFactory.generatePolicies(rulesetConfigurations)
 
         # Write Policies to file
@@ -219,6 +222,7 @@ try:
             config.pconfig,
             config.agentGroup,
             config.beautify,
+            config.baseThreshold,
             config.tenantId,
             config.tenantName,
             config.shared,

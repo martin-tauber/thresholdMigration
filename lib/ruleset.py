@@ -2,6 +2,7 @@ import os
 import sys
 import shlex
 import re
+import codecs
 
 from lib.logger import LoggerFactory
 
@@ -11,21 +12,23 @@ from lib.configuration import MonitoringConfiguration, MonitoringConfigurationFa
 logger = LoggerFactory.getLogger(__name__)
 
 class RulesetMigrator():
-    def __init__(self, ruleset, solutionPackManager, kmRepository):
-        self.rulesets= []
-        self.rulesets.append(ruleset)
+    def __init__(self, rulesets, solutionPackManager, kmRepository):
+        self.rulesets = rulesets
         self.solutionPackManager = solutionPackManager
         self.kmRepository = kmRepository
         self.monitoringConfigurationFactory = MonitoringConfigurationFactory(kmRepository)
 
     def migrate(self):
-        configurationMap = {}
+        configurations = []
         for ruleset in self.rulesets:
-            logger.info(f"Migrating Ruleset  '{ruleset.source}' ...")
+            configurationMap = {}
+            logger.debug(f"Migrating Ruleset '{ruleset.source}' ...")
             for rule in ruleset.rules:
                 self.migrateRule(rule, ruleset.agent, ruleset.port, configurationMap)
             
-        return list(configurationMap.values())
+            configurations.extend(list(configurationMap.values()))
+
+        return configurations
         
     def migrateRule(self, rule, agent, port, configurationMap):
         for solutionPack in self.solutionPackManager.solutionPacks:
@@ -63,16 +66,20 @@ class RulesetMigrator():
 
 class RuleSet():
     def __init__(self, filename):
-        logger.info(f"Parsing Ruleset '{filename}' ...")
+        logger.debug(f"Parsing Ruleset '{filename}' ...")
         self.rules = []
         self.source = filename
 
+        search = f'([^{os.path.sep}]+)_([0-9]+)[^{os.path.sep}]*'
+
         # get agent and port from filename
-        match = re.match(r'(.+)_([^_]+)', os.path.basename(os.path.splitext(filename)[0]))
+        match = re.match(re.compile(search), os.path.basename(os.path.splitext(filename)[0]))
         self.agent = match[1]
         self.port = match[2]
 
-        content = open(filename, 'rt').read()
+        with codecs.open(filename, 'r', encoding='utf-8', errors='ignore') as fdata:
+            content = fdata.read()
+
         lexer = shlex.shlex(content, posix=True)
 
         # Ignore the initial PATROL_CONFIG
@@ -133,15 +140,31 @@ class TokenException(Exception):
         self.lineno = lineno
 
 
-class RuleSetFactory():
-    def __init__(self, path):
-        self.rulesets = []
-        for subdir, dirs, files in os.walk(path):
-            for file in files:
-                try:
-                    filename = subdir + file
-                    ruleset = RuleSet(filename)
-                    self.rulesets.append(ruleset)
+def RuleSetFactory(files):
+    rulesets = []
 
-                except Exception as error:
-                    raise RuntimeError(f"An unexpected error occured while creating ruleset for file '{filename}'. ({error})")
+    for file in files:
+        if not os.path.exists(file):
+            logger.warn(f"Ruleset file '{file}' does not exist.")
+            continue
+
+        if os.path.isfile(file):
+            try:
+                rulesets.append(RuleSet(file))
+            except RuntimeError as error:
+                logger.error(error)
+            except RuntimeWarning as warning:
+                logger.warn(warning)
+
+        elif os.path.isdir(file):
+            for subdir, dirs, files in os.walk(file):
+                for filename in files:
+                    try:
+                        fullname = subdir + filename
+                        rulesets.append(RuleSet(fullname))
+                    except RuntimeError as error:
+                        logger.error(error)
+                    except RuntimeWarning as warning:
+                        logger.warn(warning)
+
+    return rulesets
