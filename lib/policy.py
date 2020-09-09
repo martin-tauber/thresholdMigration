@@ -1,6 +1,7 @@
 import uuid
 import os
 import json
+import re
 
 import pandas as pd
 
@@ -12,14 +13,17 @@ logger = LoggerFactory.getLogger(__name__)
 # Policies
 #-----------------------
 class PolicyFactory():
-    def __init__(self, tenantId, tenantName, shared, enabled, precedence, owner, group):
+    def __init__(self, agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify):
+        self.agentGroup = agentGroup
         self.tenantId = tenantId
         self.tenantName = tenantName
         self.shared = shared
         self.enabled = enabled
-        self.precedence = precedence
+        self.basePrecedence = basePrecedence
+        self.agentPrecedence = agentPrecedence
         self.owner = owner
         self.group = group
+        self.beautify = beautify
 
     def generatePolicies(self, agentConfigurations):
         logger.info("Generating policies ...")
@@ -34,9 +38,11 @@ class PolicyFactory():
 
         # generate the base policies
         for id, configIds in baseConfigurations.items():
-            logger.info(f"Generating base policy 'BASE-{id}' ...")
-            policy = self.createPolicy(f'TAG EQUALS "BASE-{id}"', f"BASE-{id}",
-                self.tenantId, self.tenantName, self.shared, self.enabled, self.precedence, self.owner, self.group,
+            if self.beautify: id = re.sub("_CONTAINER$", "", id)
+
+            logger.info(f"Generating base policy 'BASE-{self.agentGroup}-{id}' ...")
+            policy = self.createPolicy(f'TAG EQUALS "BASE-{id}" AND TAG EQUALS "{self.agentGroup}"', f"BASE-{self.agentGroup}-{id}",
+                self.tenantId, self.tenantName, self.shared, self.enabled, self.basePrecedence, self.owner, self.group,
                 "Auto generated base policy")
             policies.append(policy)
 
@@ -51,19 +57,21 @@ class PolicyFactory():
 
             # loop through base configs and see if they cover the agent
             for id, baseConfigIds in baseConfigurations.items():
+                if self.beautify: id = re.sub("_CONTAINER$", "", id)
+
                 if baseConfigIds.issubset(agentConfigIds):
                     agentConfigIds = agentConfigIds.difference(baseConfigIds)
 
                     # add agents to tags
                     if not agentId in tags: tags[agentId] = []
-                    tags[agentId].append(f"BASE-{id}")
+                    tags[agentId].extend([f"BASE-{id}", f"{self.agentGroup}"])
 
             # if we still have config ids we'll create an agent policy
             if agentConfigIds:
                 (agent, port) = agentId.split(":")
                 policy = self.createPolicy(f'agentName EQUALS \"{agent}\" AND agentPort NUMBER_EQUALS \"{port}\"',
                     f"{agent}-{port}-Thresholds",
-                    self.tenantId, self.tenantName, self.shared, self.enabled, self.precedence, self.owner, self.group,
+                    self.tenantId, self.tenantName, self.shared, self.enabled, self.agentPrecedence, self.owner, self.group,
                     "Auto generated agent policy")
                 policies.append(policy)
                 for configId in agentConfigIds:
@@ -194,6 +202,7 @@ class PolicyFactory():
     def savePolicies(policies, path):
         logger.info(f"Writing polycies to directory '{path}' ...")
         os.makedirs(path, exist_ok = True)
+
         for policy in policies:
             with open(f"{path}{os.path.sep}{policy['name']}.mo", 'w') as fp:
                 json.dump([policy], fp, indent = 4)
@@ -201,6 +210,8 @@ class PolicyFactory():
     @staticmethod
     def saveTags(tags, path):
         logger.info(f"Writing tags to directory '{path}' ...")
+        os.makedirs(path, exist_ok = True)
+
         for agentId, tags in tags.items():
             with open(f"{path}{os.path.sep}{agentId}.cfg", 'w') as fp:
                 fp.write(f"PATROL_CONFIG{os.linesep}")

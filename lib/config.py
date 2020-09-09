@@ -7,7 +7,10 @@ class CKey():
     repositoryVersion = "repositoryVersion"
     cacheDir = "cacheDir"
 
-    out = "out"
+    policyDir = "policyDir"
+    tagsDir = "tagsDir"
+    agentGroup = "agentGroup"
+    beautify = "beautify"
     thresholds = "thresholds"
     pconfig = "pconfig"
     monitor = "monitor"
@@ -15,7 +18,8 @@ class CKey():
     # policy
     tenantId = "tenantId"
     tenantName = "tenantName"
-    precedence = "precedence"
+    basePrecedence = "basePrecedence"
+    agentPrecedence = "agentPrecedence"
     shared = "shared"
     enabled = "enabled"
     owner = "owner"
@@ -29,7 +33,10 @@ class CDefault():
     repositoryVersion = None
     cacheDir = "cache"
 
-    out = "out"
+    policyDir = f"out{os.path.sep}policies"
+    tagsDir = f"out{os.path.sep}tags"
+    agentGroup = "ALL"
+    beautify = False
     thresholds = None
     pconfig = None
     monitor = None
@@ -37,7 +44,8 @@ class CDefault():
     # policy
     tenantId = "*"
     tenantName = "*"
-    precedence = "399"
+    basePrecedence = "199"
+    agentPrecedence = "899"
     shared = False
     enabled = False
     owner = "admin"
@@ -99,7 +107,8 @@ class Config():
 
 
 class MigrateConfig(Config):
-    keys = [ckey.repositoryDir, ckey.cacheDir, ckey.repositoryVersion, ckey.out, ckey.thresholds, ckey.pconfig, ckey.tenantId, ckey.tenantName, ckey.precedence, ckey.shared, ckey.enabled, ckey.owner, ckey.group]
+    keys = [ckey.repositoryDir, ckey.cacheDir, ckey.repositoryVersion, ckey.policyDir, ckey.tagsDir, ckey.agentGroup, ckey.beautify, ckey.thresholds,
+        ckey.pconfig, ckey.tenantId, ckey.tenantName, ckey.basePrecedence, ckey.agentPrecedence, ckey.shared, ckey.enabled, ckey.owner, ckey.group]
 
     def __init__(self, args):
         super().__init__(args)

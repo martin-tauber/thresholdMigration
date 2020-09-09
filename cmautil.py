@@ -32,37 +32,52 @@ def parseArguments():
     migrateCmd = cmdParsers.add_parser('migrate', help="The 'migrate' command allows you to migrate external sources to TrueSight monitoring policies. " +
         "Currently the command supports migrating server thresholds exported from TrueSight Infrastructure Servers. "
         "Use 'migrate -h' to get more information on the migrate command.")
-    migrateCmd.add_argument('-r','--repository', action="store", dest=ckey.repositoryDir,
-        help=f"path to the bmc repository. The default path is \'{cdefault.repositoryDir}\'. The repository is needed to gather information about solutions to be able to create policies. "+
-            "the solution is delivered with 'cached' versions of the repository. A cached version is a stripped version of the repository only containing the information needed " +
-            "by the tool. Since cached versions are delivered with the tool you normally don't need to use this option. Use this option if you don't have a cached version of the "+
-            "repository you would like to use.")
 
-    migrateCmd.add_argument('--cache', action="store", dest=ckey.cacheDir, required=False,
-        help=f"path to the repository cache directory. The default path is \'{cdefault.cacheDir}\'. This is the directory were the tool is searching for the cached versions of the "+
-            "TrueSight KM repository. Also see (--repository and --version).")
-
-    migrateCmd.add_argument('--version', action="store", dest=ckey.repositoryVersion,
-        help=f"Version of the repository to be used. If no version is specified, the latest version found in the repository cache will be used.")
-
-    migrateCmd.add_argument("-o", "--out", action="store", dest=ckey.out,
-        help=f"path to the directory where the generated policies should be stored. The default is \'{cdefault.out}\'.'")
-    
     migrateCmd.add_argument("-t", "--thresholds", action="store", dest=ckey.thresholds, nargs="+",
         help=f"name of the file which which contains the thresholds exported from tsps. The default file name is \'{cdefault.thresholds}\'")
 
     migrateCmd.add_argument("--pconfig", action="store", dest=ckey.pconfig,
         help=f"pconfig file that should be migrated to cma.")
 
+    migrateCmd.add_argument('-r','--repositorydir', action="store", dest=ckey.repositoryDir,
+        help=f"path to the bmc repository. The default path is \'{cdefault.repositoryDir}\'. The repository is needed to gather information about solutions to be able to create policies. "+
+            "the solution is delivered with 'cached' versions of the repository. A cached version is a stripped version of the repository only containing the information needed " +
+            "by the tool. Since cached versions are delivered with the tool you normally don't need to use this option. Use this option if you don't have a cached version of the "+
+            "repository you would like to use.")
+
+    migrateCmd.add_argument('--cachedir', action="store", dest=ckey.cacheDir, required=False,
+        help=f"path to the repository cache directory. The default path is \'{cdefault.cacheDir}\'. This is the directory were the tool is searching for the cached versions of the "+
+            "TrueSight KM repository. Also see (--repository and --version).")
+
+    migrateCmd.add_argument('--version', action="store", dest=ckey.repositoryVersion,
+        help=f"Version of the repository to be used. If no version is specified, the latest version found in the repository cache will be used.")
+
+    migrateCmd.add_argument("-o", "--policydir", action="store", dest=ckey.policyDir,
+        help=f"path to the directory where the generated policies should be stored. The default is \'{cdefault.policyDir}\'.'")
+
+    migrateCmd.add_argument("--tagsdir", action="store", dest=ckey.tagsDir,
+        help=f"path to the directory where the generated policies should be stored. The default is \'{cdefault.tagsDir}\'.'")
+
+    migrateCmd.add_argument("--agentgroup", action="store", dest=ckey.agentGroup,
+        help=f"The name of the agent group migrated. The name is used during policy creation. Policies created will contain this name. For example a base policy created for windows " +
+            f"service would be named BASE-<AGENTGROUP>-NT_SERVICE_CONTAINER by default. The default is \'{cdefault.agentGroup}\'.")
+
+    migrateCmd.add_argument("--beautify", action="store_true", dest=ckey.beautify,
+        help=f"when creating policy names the monitor name is used. Often the monitor name will have an ending like '_CONTAINER'. If you specify this option, the ending will be " +
+            f"removed. The defaukt is that the name is not beautified.")
+
     # policy
-    migrateCmd.add_argument("--tenantId", action="store", dest=ckey.tenantId,
+    migrateCmd.add_argument("--tenantid", action="store", dest=ckey.tenantId,
         help=f"Tenant id to be used in policy generation. The default tenant id is \'{cdefault.tenantId}\'.")
 
-    migrateCmd.add_argument("--tenantName", action="store", dest=ckey.tenantName,
+    migrateCmd.add_argument("--tenantname", action="store", dest=ckey.tenantName,
         help=f"Tenant name to be used in policy generation The default tenant name is \'{cdefault.tenantName}\'.")
 
-    migrateCmd.add_argument("-p", "--precedence", action="store", dest=ckey.precedence,
-        help=f"precedence to be used in policy generation. The default precedence \'{cdefault.precedence}\'.")
+    migrateCmd.add_argument("--baseprecedence", action="store", dest=ckey.basePrecedence,
+        help=f"precedence to be used for creating base policies. The default precedence \'{cdefault.basePrecedence}\'.")
+
+    migrateCmd.add_argument("--agentprecedence", action="store", dest=ckey.agentPrecedence,
+        help=f"precedence to be used for creating agent policies generation. The default precedence \'{cdefault.agentPrecedence}\'.")
 
     migrateCmd.add_argument("--shared", action="store_true", dest=ckey.shared, 
         help=f"share the generated policy. The default is that the policy is not shared")
@@ -115,7 +130,9 @@ def parseArguments():
     return parser.parse_args()
 
 
-def migrateCmd(repositoryDir, cacheDir, version, outputPath, thresholdFilenames, pconfig, tenantId, tenantName, shared, enabled, precedence, owner, group):
+def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFilenames, pconfig, agentGroup, beautify,
+        tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group):
+
     # get the repository
     kmRepository = KMRepository.get(repositoryDir, cacheDir, version)
 
@@ -129,12 +146,12 @@ def migrateCmd(repositoryDir, cacheDir, version, outputPath, thresholdFilenames,
         agentConfigurations = instanceThresholdMigrator.migrate()
 
         # Generate Policies
-        policyFactory = PolicyFactory(tenantId, tenantName, shared, enabled, precedence, owner, group)
+        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify)
         (policies, tags) = policyFactory.generatePolicies(agentConfigurations)
 
         # Write Policies to file
-        PolicyFactory.savePolicies(policies, outputPath)
-        PolicyFactory.saveTags(tags, outputPath)
+        PolicyFactory.savePolicies(policies, policyDir)
+        PolicyFactory.saveTags(tags, tagsDir)
 
     if pconfig != None:
         solutionPackManager = SolutionPackManager(path="solutions", repository = kmRepository)
@@ -144,12 +161,12 @@ def migrateCmd(repositoryDir, cacheDir, version, outputPath, thresholdFilenames,
         rulesetConfigurations = rulesetMigrator.migrate()
 
         # Generate Policies
-        policyFactory = PolicyFactory(tenantId, tenantName, shared, enabled, precedence, owner, group)
+        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify)
         (policies, tags) = policyFactory.generatePolicies(rulesetConfigurations)
 
         # Write Policies to file
-        PolicyFactory.savePolicies(policies, outputPath)
-        PolicyFactory.saveTags(tags, outputPath)
+        PolicyFactory.savePolicies(policies, policyDir)
+        PolicyFactory.saveTags(tags, tagsDir)
 
 def kmrepoCmd(repositoryDir, cacheDir, version):
     kmRepository = KMRepository(f"{repositoryDir}{os.path.sep}bmc_products{os.path.sep}kmfiles")
@@ -196,14 +213,18 @@ try:
         migrateCmd(config.repositoryDir,
             config.cacheDir,
             config.repositoryVersion,
-            config.out,
+            config.policyDir,
+            config.tagsDir,
             config.thresholds,
             config.pconfig,
+            config.agentGroup,
+            config.beautify,
             config.tenantId,
             config.tenantName,
             config.shared,
             config.enabled,
-            config.precedence,
+            config.basePrecedence,
+            config.agentPrecedence,
             config.owner,
             config.group)
 
