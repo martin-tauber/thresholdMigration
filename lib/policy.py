@@ -172,7 +172,8 @@ class PolicyFactory():
         percentStr = "{:5.2f}".format(percent)
 
         if percent >=  self.baseThreshold:
-            logger.info(f"Found base with {result[0]} duplicates ({percentStr}%) on agent '{result.index[0]}'.")
+            (agent, port) = result.index[0].split(":")
+            logger.info(f"Found base with {result[0]} duplicates ({percentStr}%) on agent '{agent}' port '{port}'.")
             return set(matrix.loc[matrix[result.index[0]] == True, result.index[0]].index)
         else:
             logger.info(f"No significant number of duplicates found ({percentStr} < {self.baseThreshold}). No base policy created.")
@@ -227,7 +228,7 @@ class PolicyFactory():
 
         for agentId, tags in tags.items():
             (agent, id) = agentId.split(":")
-            
+
             with open(f"{path}{os.path.sep}{agent}_{id}.cfg", 'w') as fp:
                 fp.write(f"PATROL_CONFIG{os.linesep}")
 
