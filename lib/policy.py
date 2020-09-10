@@ -13,7 +13,7 @@ logger = LoggerFactory.getLogger(__name__)
 # Policies
 #-----------------------
 class PolicyFactory():
-    def __init__(self, agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify = False, baseThreshold = 30):
+    def __init__(self, agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify = False, optimizeThreshold = 20):
         self.agentGroup = agentGroup
         self.tenantId = tenantId
         self.tenantName = tenantName
@@ -24,7 +24,7 @@ class PolicyFactory():
         self.owner = owner
         self.group = group
         self.beautify = beautify
-        self.baseThreshold = baseThreshold
+        self.optimizeThreshold = optimizeThreshold
 
     def generatePolicies(self, agentConfigurations):
         logger.info("Generating policies ...")
@@ -35,7 +35,7 @@ class PolicyFactory():
         taggedCount = 0
         agentCount = 0
 
-        (configurationMatrix, configurations, baseConfigurations) = self.optimize(agentConfigurations)
+        (configurationMatrix, configurations, baseConfigurations) = self.optimize(agentConfigurations, self.optimizeThreshold)
 
         # generate the base policies
         for id, configIds in baseConfigurations.items():
@@ -84,7 +84,7 @@ class PolicyFactory():
         logger.info(f"Generated {len(policies)} policies. ({baseCount} base policies, {agentCount} agent policies, {len(tags)} tagged agents)")
         return policies, tags
 
-    def optimize(self, agentConfigurations):
+    def optimize(self, agentConfigurations, threshold):
         baseConfigs = {}
 
         (configurationMatrix, configurations) = self.createConfigurationMatrix(agentConfigurations)
@@ -96,13 +96,13 @@ class PolicyFactory():
             logger.info(f"Found {len(matrix)} unique configurations for monitor '{monitorType}'.")
 
 
-            configIds = self.optimizeMatrix(matrix)
+            configIds = self.optimizeMatrix(matrix, threshold)
             if configIds != None:
                 baseConfigs[monitorType] = configIds
 
         return configurationMatrix, configurations, baseConfigs
 
-    def optimizeMatrix(self, matrix):
+    def optimizeMatrix(self, matrix, threshold):
         # sort the columns by occurence of true
         sortedColumns = (matrix[matrix.columns.tolist()] == True).sum(axis = 0)
         sortedColumns = sortedColumns.loc[sortedColumns > 0].sort_values(ascending = False).index.tolist()
@@ -136,7 +136,12 @@ class PolicyFactory():
 
             y = y - 1
 
-        logger.info(f"Found configuration set containing {gy + 1} configurations, covering {gx + 1} agents. Total coverage {(gy + 1) * (gx + 1) / (maxx * maxy) * 100} %.")
+        quality = (gy + 1) * (gx + 1) / (maxx * maxy) * 100
+        logger.info(f"Found optimal configuration set containing {gy + 1} configurations, covering {gx + 1} agents. Total coverage {quality} %.")
+
+        if quality < threshold:
+            logger.info(f"No significant configuration set found ({quality} < {threshold}). No base policy created.")
+            return None
 
         return set(matrix.index[:gy + 1].tolist())
 

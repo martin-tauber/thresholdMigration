@@ -11,7 +11,7 @@ class CKey():
     tagsDir = "tagsDir"
     agentGroup = "agentGroup"
     beautify = "beautify"
-    baseThreshold = "baseThreshold"
+    optimizeThreshold = "optimizeThreshold"
     thresholds = "thresholds"
     pconfig = "pconfig"
     monitor = "monitor"
@@ -38,7 +38,7 @@ class CDefault():
     tagsDir = f"out{os.path.sep}tags"
     agentGroup = "ALL"
     beautify = False
-    baseThreshold = 30
+    optimizeThreshold = 20
     thresholds = None
     pconfig = None
     monitor = None
@@ -109,7 +109,7 @@ class Config():
 
 
 class MigrateConfig(Config):
-    keys = [ckey.repositoryDir, ckey.cacheDir, ckey.repositoryVersion, ckey.policyDir, ckey.tagsDir, ckey.agentGroup, ckey.beautify, ckey.baseThreshold, ckey.thresholds,
+    keys = [ckey.repositoryDir, ckey.cacheDir, ckey.repositoryVersion, ckey.policyDir, ckey.tagsDir, ckey.agentGroup, ckey.beautify, ckey.optimizeThreshold, ckey.thresholds,
         ckey.pconfig, ckey.tenantId, ckey.tenantName, ckey.basePrecedence, ckey.agentPrecedence, ckey.shared, ckey.enabled, ckey.owner, ckey.group]
 
     def __init__(self, args):
