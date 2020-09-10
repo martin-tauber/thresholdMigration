@@ -93,7 +93,7 @@ class MonitoringConfiguration(AgentConfiguration):
         profile = None
         for item in policy["monitorConfiguration"]["configurations"]:
             if item["monitoringProfile"] == self.profile:
-                profile = item["monitoringProfile"]
+                profile = item
                 break
 
         if profile == None:
@@ -109,8 +109,8 @@ class MonitoringConfiguration(AgentConfiguration):
         # find and create the monitor for this monitoring configuration
         monitor = None
         for item in profile["monitors"]:
-            if item["monitorTyoe"] == self.monitorType:
-                monitor = item["monitorType"]
+            if item["monitorType"] == self.monitorType:
+                monitor = item
                 break
 
         if monitor == None:

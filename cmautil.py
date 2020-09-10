@@ -157,11 +157,15 @@ def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFi
         PolicyFactory.saveTags(tags, tagsDir)
 
     if pconfig != None:
+        logger.info(f"Processing rulesets ...")
         solutionPackManager = SolutionPackManager(path="solutions", repository = kmRepository)
         rulesets = RuleSetFactory(pconfig)
 
+        logger.info(f"loaded {len(rulesets)} rulesets.")
+
         rulesetMigrator = RulesetMigrator(rulesets, solutionPackManager, kmRepository)
         rulesetConfigurations = rulesetMigrator.migrate()
+        logger.info(f"Found {len(rulesetConfigurations)} ruleset configurations.")
 
         # Generate Policies
         policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify, baseThreshold)

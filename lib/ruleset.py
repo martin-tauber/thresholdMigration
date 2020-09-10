@@ -55,11 +55,17 @@ class RulesetMigrator():
                             self.set(configurationMap, agent, port, solutionPack.monitorType, solutionPack.profile, path, value)
 
     def set(self, configurations, agent, port, monitorType, profile, path, value):
-        if monitorType in configurations:
-            configuration = configurations[monitorType]
+        match = re.search(r"/ConfigureService/([^/]+)", path)
+        if match:
+            key = f"{monitorType}-{match[1]}"
+        else:
+            key = monitorType
+
+        if key in configurations:
+            configuration = configurations[key]
         else:
             configuration = self.monitoringConfigurationFactory.create(agent, port, monitorType, profile)
-            configurations[monitorType] = configuration
+            configurations[key] = configuration
 
         configuration.set(path, value)
 
@@ -74,6 +80,9 @@ class RuleSet():
 
         # get agent and port from filename
         match = re.match(re.compile(search), os.path.basename(os.path.splitext(filename)[0]))
+        if not match:
+            raise RuntimeError(f"Ruleset file '{filename}' does not match file naming convention.")
+        
         self.agent = match[1]
         self.port = match[2]
 
@@ -160,7 +169,7 @@ def RuleSetFactory(files):
             for subdir, dirs, files in os.walk(file):
                 for filename in files:
                     try:
-                        fullname = subdir + filename
+                        fullname = f"{subdir}{os.path.sep}{filename}"
                         rulesets.append(RuleSet(fullname))
                     except RuntimeError as error:
                         logger.error(error)

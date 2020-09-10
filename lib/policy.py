@@ -13,7 +13,7 @@ logger = LoggerFactory.getLogger(__name__)
 # Policies
 #-----------------------
 class PolicyFactory():
-    def __init__(self, agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify, baseThreshold):
+    def __init__(self, agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify = False, baseThreshold = 30):
         self.agentGroup = agentGroup
         self.tenantId = tenantId
         self.tenantName = tenantName
@@ -96,11 +96,51 @@ class PolicyFactory():
             logger.info(f"Found {len(matrix)} unique configurations for monitor '{monitorType}'.")
 
 
-            configIds = self.getBaseConfigIds(matrix)
+            configIds = self.optimizeMatrix(matrix)
             if configIds != None:
                 baseConfigs[monitorType] = configIds
 
         return configurationMatrix, configurations, baseConfigs
+
+    def optimizeMatrix(self, matrix):
+        # sort the columns by occurence of true
+        sortedColumns = (matrix[matrix.columns.tolist()] == True).sum(axis = 0)
+        sortedColumns = sortedColumns.loc[sortedColumns > 0].sort_values(ascending = False).index.tolist()
+
+        logger.info(f"Found {len(sortedColumns)} relevant agents.")
+
+        # sort the rows by occurence of true
+        sortedRows = (matrix[matrix.columns.tolist()] == True).sum(axis = 1).sort_values(ascending = False).index.tolist()
+
+        # rearange the matrix
+        matrix = matrix.reindex(sortedColumns, axis = 1).reindex(sortedRows)
+
+        # get the maximum square containing true values
+        maxx = len(matrix.columns)
+        maxy = len(matrix.index)
+        x = 0
+        y = 0
+
+        while (matrix.iloc[y,x] == True and y + 1 < maxy):
+            y = y + 1
+
+        gx = x
+        gy = y
+
+        while (y >= 0):
+            while (x + 1 < maxx and matrix.iloc[y,x + 1] == True):
+                x = x + 1
+                if (gx + 1) * (gy + 1) < (x + 1) * (y + 1):
+                    gx = x
+                    gy = y
+
+            y = y - 1
+
+        logger.info(f"Found configuration set containing {gy + 1} configurations, covering {gx + 1} agents. Total coverage {(gy + 1) * (gx + 1) / (maxx * maxy) * 100} %.")
+
+        return set(matrix.index[:gy + 1].tolist())
+
+
 
     def createConfigurationMatrix(self, agentConfigurations):
         # build agent config matrix
@@ -143,41 +183,6 @@ class PolicyFactory():
 
         return configurationMatrix, uniqueConfigurations
 
-    def getBaseConfigIds(self, matrix, threshold = 10):
-        # get cardinal for agent
-
-        allCols = matrix.columns.tolist()
-        newSearch = matrix.columns[1:].tolist()
-
-        duplicates = pd.Series(0, index = allCols)
-
-        for col1 in allCols:
-            searchCols = newSearch
-            newSearch = []
-
-            for col2 in searchCols:
-                if matrix[col1].equals(matrix[col2]):
-                    duplicates[col1] = duplicates[col1] + 1
-                else:
-                    if col2 != searchCols[0]: newSearch.append(col2)
-
-        # get agent with highest cardinal
-        top=5
-        result = duplicates.sort_values(ascending=False).head(top)
-        # logger.info(f"top {top} duplicate agents with same configuration:")
-        # for index, value in result.items():
-        #     logger.info(f"AgentId '{index}' has {value} duplicates.")
-
-        percent = result[0]/len(matrix.columns)*100
-        percentStr = "{:5.2f}".format(percent)
-
-        if percent >=  self.baseThreshold:
-            (agent, port) = result.index[0].split(":")
-            logger.info(f"Found base with {result[0]} duplicates ({percentStr}%) on agent '{agent}' port '{port}'.")
-            return set(matrix.loc[matrix[result.index[0]] == True, result.index[0]].index)
-        else:
-            logger.info(f"No significant number of duplicates found ({percentStr} < {self.baseThreshold}). No base policy created.")
-            return None
 
     def createPolicy(self, agentSelectionCriteria, name, tenantId, tenantName, shared, enabled, precedence, owner, group, description):
         logger.debug(f"Generating agent policy '{name}' ...")
@@ -214,7 +219,7 @@ class PolicyFactory():
 
     @staticmethod
     def savePolicies(policies, path):
-        logger.info(f"Writing polycies to directory '{path}' ...")
+        logger.info(f"Writing policies to directory '{path}' ...")
         os.makedirs(path, exist_ok = True)
 
         for policy in policies:
