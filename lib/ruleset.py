@@ -82,7 +82,7 @@ class RuleSet():
         match = re.match(re.compile(search), os.path.basename(os.path.splitext(filename)[0]))
         if not match:
             raise RuntimeError(f"Ruleset file '{filename}' does not match file naming convention.")
-        
+
         self.agent = match[1]
         self.port = match[2]
 
