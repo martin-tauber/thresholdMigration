@@ -16,6 +16,10 @@ class PolicyOptimizer():
 
         (c, configurations) = self.createConfigurationMatrix(agentConfigurations)
 
+        if len(configurations) == 0 or len(c.columns) == 2:
+            logger.warn("Nothing found to optimize.")
+            return c, configurations, baseConfigs
+
         if self.agentInfo != None:
             # generate the group by dataframe
             g = pd.DataFrame()

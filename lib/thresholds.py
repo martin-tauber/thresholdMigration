@@ -61,7 +61,7 @@ class InstanceThresholdMigrator():
             try:
                 if not threshold["monitorType"] in self.kmRepository.monitors:
                     if not threshold["monitorType"] in unknownMonitorTypes:
-                        logger.warn(f"Monitor {threshold['monitorType']} not found in repository. Skipping threshold.")
+                        logger.warn(f"Monitor {threshold['monitorType']} not found in repository.")
                         unknownMonitorTypes.append(threshold["monitorType"])
 
                     if not force: continue
