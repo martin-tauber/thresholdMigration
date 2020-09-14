@@ -162,10 +162,34 @@ The agent info file can be specified from the command line using:
     --agentinfo <path>
 
 
-If no agent info file is specified, no horizontal split will be done.
+If no agent info file is specified, no horizontal split will be done. 
 
+Be aware that the optimizer will generate policies as a combination of the Horizontal split and the vertical split. As mentioned for every piece of
+the split it tries to find the optimal policy. So combining the two examples above the optimizer would generate policies like BASE-Pepsi-Production-CPU
 
+For more information about the optimizer take a look at the presentation in the docs folder.
 
+## Jobs
+
+The tool is designed to make the best assumptions for you trying to avoid the need of specifying specific options from the command line. Nevertheless
+it might get unconfortable to specify your overrides every time you invoke the utility. Therfor you can create jobs. A job can easily be created by specifying the command line option *--save filename*.
+
+Example
+
+    ./cmautil.py --save job1.mig migrate --thresholds mythresholds.csv --optimizethreshold 40 --agentinfo myagentinfo.csv
+
+you then can either directly run the job by specifying
+
+    ./cmautil.py --load job1.mig
+
+which would run exactly the command shown in the example above. You can also load the job and override specific values by specifying the *migrate*
+command after the *--load* option and overriding any command line parameter.
+
+    ./cmautil.py --load job1.mig migrate --optimize 30
+
+The above command would load the configuration from the job1.mig file and override the --optimizethreshold option. In the example the --optimze is not a typo. Since the command line option is unique by just typing that part you don't need to type the full command line option.
+
+## Repositories
 
 
 
