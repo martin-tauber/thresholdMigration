@@ -63,7 +63,7 @@ out/tags directory. You can override the default directory for the output with t
     --policydir <path>
     --tagsdir <path>
 
-The *--policydir* specifies where the generated policies should be stored. The *--tagsdir* specifies for the configuration files containing
+The *--policydir* specifies where the generated policies should be stored. Then *--tagsdir* specifies were the configuration files containing
 the agent tags are stored.
 
 The primary goal of the tool is to create monitoring policies that can be imported into the TrueSight presentation server. These 
@@ -123,8 +123,46 @@ option can be used:
 
 With this command line option you specify the minimum number of agents a base policy must cover. If it is less the base policy is ignored.
 
-### Configuration grouping
+### Grouping
 
+Base policies are generated for a subset of agent/configuration combinations. The opimizer therefor generats the configuration matrix. Imagine
+the configuration matrix as a matrix having the agents as columns and the configurations as rows. Every cell of that matrix contains a boolean
+indicating if that configuration is applied to the corresponding agent or not. This matrix is cut into pieces and for every piece the optimizer 
+finds the optimal agent/configuration combination for generating the base policy.
+
+### Horizontal Split - Configuration Grouping
+
+Horizontally the matrix is split into configurations of the same monitor type. So for example the optimizer will try to find base policies for
+DISKS and another base policy for CPU. Currently there is no configuration parameter to influence the horizontal split.
+
+### Vertical Split - Agent Grouping
+
+Horizontally the agents can be split dependent on agent attribute. For example agents could be split into the agents belonging to the production
+environment and agent belonging to the test environment. The grouping helps the optimizer to find meaningful base policies. The agent attributes
+are controlled via the agent info file. The agent info file is a csv file containing the host name in the first column and any attribute in the 
+following colums.
+
+Example
+
+    Host,Customer,Environment
+    asterix,Pepsi,Production
+    obelix,Pepsi,Production
+    idefix,Coke,Test
+
+As mentioned you can specify any column after the the first column. Normally you would generate the agent info file from the CMDB or any CMDB like
+source.
+
+The optimizer will them gemerate policies for all combinations it finds in that file. So for the example above the optimizer tries to generate the
+BASE-Pepsi policy, the BASE-Pepsi-Production polica, the BASE-Coke policy and the BASE-Coke-Production policy. Keep in mind that these policies are
+on generated if the optimizer considers the policies to have a good coverage (--optimizethreshold) and the number of agents this policy is applied 
+to is bigger than --minagents.
+
+The agent info file can be specified from the command line using:
+
+    --agentinfo <path>
+
+
+If no agent info file is specified, no horizontal split will be done.
 
 
 
