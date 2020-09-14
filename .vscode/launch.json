@@ -13,7 +13,7 @@
             "args": [
                 "migrate",
                 "--thresholds",
-                "/Users/martin/Downloads/thresholds.csv"
+                "file1.csv"
             ]
         },
         {

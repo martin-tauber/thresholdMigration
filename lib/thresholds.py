@@ -80,7 +80,7 @@ class InstanceThresholdMigrator():
                     comparison = self.absoluteConditionMap[threshold["condition"]] if threshold["thresholdType"] == "absolute" else self.conditionMap[threshold["condition"]] ,
                     durationInMins = threshold["duration"],
                     minimumSamplingWindow = threshold["minSampleWindow"],
-                    outsideBaseline = self.baselineMap[threshold["outsideBaseline"]],
+                    outsideBaseline = self.baselineMap[threshold["outsideBaseline"]] if threshold["outsideBaseline"] in self.baselineMap else "notEnabled",
                     percentDeviation = threshold["deviation"],
                     predict = threshold["predict"],
                     severity = threshold["severity"],
@@ -96,10 +96,6 @@ class InstanceThresholdMigrator():
                 logger.debug(traceback.format_exc())
 
         return configurations
-
-
-
-
 
 class ThresholdSet():
     def __init__(self):
