@@ -32,7 +32,10 @@ The python script is independent of the operating system. So you can install it 
 It is also independent of the truesight installation, which means you don't need to have a truesight installation or any components
 of it running on the machine where you are running this script. The script will generate json files which contain policy definitions
 these files would need to be transfered to a machine where you can import them into truesight using the cmamigration utility deployed
-with the truesight installation
+with the truesight installation.
+
+If you don't have git installed on your machine and you don't want to install git, go to the website
+https://github.com/martin-tauber/thresholdMigration.git click on the *code* button and choose download zip from the pulldown menu.
 
 # Migrating Thresholds
 ## Export the thresholds from the Truesight Presentation server
