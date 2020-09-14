@@ -16,15 +16,16 @@ class InstanceThresholdMigrator():
         self.thresholds = thresholds.set
         self.kmRepository = kmRepository
 
-        self.conditionMap = {
+        self.absoluteConditionMap = {
             ">": "GREATER_THAN",
             "<": "SMALLER_THAN",
+            "==": "EQUALS",
             "=": "EQUALS",
             "<=": "SMALLER_OR_EQUALS",
             ">=": "GREATER_OR_EQUALS"
         }
 
-        self.absoluteConditionMap = {
+        self.conditionMap = {
             ">": "ABOVE",
             "<": "BELOW"
         }
@@ -91,8 +92,14 @@ class InstanceThresholdMigrator():
                 ))
             except Exception as error:
                 logger.error("An unexpected exception occured while migrating instance threshold. Continuing processing but entry is ignored.")
-                logger.error(f"agent: {threshold['agent']}, port: {threshold['port']}, monitorType: {threshold['monitorType']}, attribute: {threshold['attribute']}, instance: {threshold['instance']}, type: {threshold['thresholdType']}")
-                logger.error(error)
+                logger.error(f"agent: {threshold['agent']}")
+                logger.error(f"port: {threshold['port']}")
+                logger.error(f"monitorType: {threshold['monitorType']}")
+                logger.error(f"attribute: {threshold['attribute']}")
+                logger.error(f"instance: {threshold['instance']}")
+                logger.error(f"type: {threshold['thresholdType']}")
+                logger.error(f"condition: {threshold['condition']}")
+                logger.error(f"error: {error}")
                 logger.debug(traceback.format_exc())
 
         return configurations
