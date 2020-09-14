@@ -75,6 +75,12 @@ def parseArguments():
         help=f"when creating policy names the monitor name is used. Often the monitor name will have an ending like '_CONTAINER'. If you specify this option, the ending will be " +
             f"removed. The defaukt is that the name is not beautified.")
 
+    migrateCmd.add_argument("--force", action="store_true", dest=ckey.force,
+        help=f"Forces the creation of the policies. Normally policies are not created if the solution is not found in the repository. " +
+            "If you specify this flag the policy will be created anyway with default values for the solution and the release. Use this flag " + 
+            "with caution since the generated policies will not successfully load. You will need to manually modify the policy to be able " + 
+            "to load it into the TrueSight presentation server.")
+
     # policy
     migrateCmd.add_argument("--tenantid", action="store", dest=ckey.tenantId,
         help=f"Tenant id to be used in policy generation. The default tenant id is \'{cdefault.tenantId}\'.")
@@ -140,7 +146,7 @@ def parseArguments():
 
 
 def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFilenames, pconfig, agentGroup, beautify, optimzeThreshold, agentInfo,
-        tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group):
+        force, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group):
 
     # get the repository
     kmRepository = KMRepository.get(repositoryDir, cacheDir, version)
@@ -152,7 +158,7 @@ def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFi
 
         # Migrate Thresholds
         instanceThresholdMigrator = InstanceThresholdMigrator(thresholdSet, kmRepository)
-        agentConfigurations = instanceThresholdMigrator.migrate()
+        agentConfigurations = instanceThresholdMigrator.migrate(force)
 
         # Generate Policies
         policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify, optimzeThreshold, agentInfo)
@@ -170,7 +176,7 @@ def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFi
         logger.info(f"loaded {len(rulesets)} rulesets.")
 
         rulesetMigrator = RulesetMigrator(rulesets, solutionPackManager, kmRepository)
-        rulesetConfigurations = rulesetMigrator.migrate()
+        rulesetConfigurations = rulesetMigrator.migrate(force)
         logger.info(f"Found {len(rulesetConfigurations)} ruleset configurations.")
 
         # Generate Policies
@@ -234,6 +240,7 @@ try:
             config.beautify,
             config.optimizeThreshold,
             config.agentInfo,
+            config.force,
             config.tenantId,
             config.tenantName,
             config.shared,

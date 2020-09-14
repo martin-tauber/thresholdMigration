@@ -51,7 +51,7 @@ class InstanceThresholdMigrator():
             "All Baselines": "all"
         }
 
-    def migrate(self):
+    def migrate(self, force):
         logger.info(f"Migrating {len(self.thresholds)} instance thresholds ...")
         unknownMonitorTypes = []
 
@@ -64,13 +64,13 @@ class InstanceThresholdMigrator():
                         logger.warn(f"Monitor {threshold['monitorType']} not found in repository. Skipping threshold.")
                         unknownMonitorTypes.append(threshold["monitorType"])
 
-                    continue
+                    if not force: continue
 
                 configurations.append(InstanceThresholdConfiguration(
                     agent = threshold["agent"],
                     port = threshold["port"],
-                    solution = self.kmRepository.monitors[threshold["monitorType"]]["solution"],
-                    release = self.kmRepository.monitors[threshold["monitorType"]]["release"],
+                    solution = self.kmRepository.monitors[threshold["monitorType"]]["solution"] if threshold["monitorType"] in self.kmRepository.monitors else "unknown",
+                    release = self.kmRepository.monitors[threshold["monitorType"]]["release"] if threshold["monitorType"] in self.kmRepository.monitors else "unknown",
                     monitorType = threshold["monitorType"],
                     attribute = threshold["attribute"],
 

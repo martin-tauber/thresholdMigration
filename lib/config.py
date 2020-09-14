@@ -18,6 +18,7 @@ class CKey():
     monitor = "monitor"
 
     # policy
+    force = "force"
     tenantId = "tenantId"
     tenantName = "tenantName"
     basePrecedence = "basePrecedence"
@@ -46,6 +47,7 @@ class CDefault():
     monitor = None
 
     # policy
+    force = False
     tenantId = "*"
     tenantName = "*"
     basePrecedence = "199"
@@ -112,7 +114,8 @@ class Config():
 
 class MigrateConfig(Config):
     keys = [ckey.repositoryDir, ckey.cacheDir, ckey.repositoryVersion, ckey.policyDir, ckey.tagsDir, ckey.agentGroup, ckey.beautify, ckey.optimizeThreshold, ckey.thresholds,
-        ckey.pconfig, ckey.tenantId, ckey.tenantName, ckey.basePrecedence, ckey.agentPrecedence, ckey.shared, ckey.enabled, ckey.owner, ckey.group, ckey.agentInfo]
+        ckey.pconfig, ckey.tenantId, ckey.tenantName, ckey.basePrecedence, ckey.agentPrecedence, ckey.shared, ckey.enabled, ckey.owner, ckey.group, ckey.agentInfo,
+        ckey.force]
 
     def __init__(self, args):
         super().__init__(args)

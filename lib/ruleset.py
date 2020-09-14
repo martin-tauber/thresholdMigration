@@ -18,7 +18,7 @@ class RulesetMigrator():
         self.kmRepository = kmRepository
         self.monitoringConfigurationFactory = MonitoringConfigurationFactory(kmRepository)
 
-    def migrate(self):
+    def migrate(self, force):
         configurations = []
         for ruleset in self.rulesets:
             configurationMap = {}
