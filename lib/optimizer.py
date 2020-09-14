@@ -11,7 +11,7 @@ class PolicyOptimizer():
         self.agentInfo = AgentInfoFactory.getAgentInfo(agentInfo) if agentInfo != None else None
 
 
-    def optimize(self, agentConfigurations, threshold):
+    def optimize(self, agentConfigurations, threshold, minAgents):
         baseConfigs = {}
 
         (c, configurations) = self.createConfigurationMatrix(agentConfigurations)
@@ -38,7 +38,7 @@ class PolicyOptimizer():
                     matrix = gc.loc[gc._monitorType_==monitorType,startColumn:]
                     logger.info(f"Found {len(matrix)} unique configurations for monitor '{monitorType}'.")
 
-                    configIds = self.optimizeMatrix(matrix, threshold)
+                    configIds = self.optimizeMatrix(matrix, threshold, minAgents)
                     if configIds != None:
                         idx = "-".join(list(name).append(monitorType)) if type(name) is tuple else f"{name}-{monitorType}"
                         baseConfigs[idx] = configIds
@@ -49,7 +49,7 @@ class PolicyOptimizer():
                 matrix = c.loc[c._monitorType_==monitorType,startColumn:]
                 logger.info(f"Found {len(matrix)} unique configurations for monitor '{monitorType}'.")
 
-                configIds = self.optimizeMatrix(matrix, threshold)
+                configIds = self.optimizeMatrix(matrix, threshold, minAgents)
                 if configIds != None:
                     baseConfigs[monitorType] = configIds
 
@@ -73,7 +73,7 @@ class PolicyOptimizer():
         return matrix[c]
 
 
-    def optimizeMatrix(self, matrix, threshold):
+    def optimizeMatrix(self, matrix, threshold, minAgents):
         # sort the columns by occurence of true
         sortedColumns = (matrix[matrix.columns.tolist()] == True).sum(axis = 0)
         sortedColumns = sortedColumns.loc[sortedColumns > 0].sort_values(ascending = False).index.tolist()
@@ -112,6 +112,10 @@ class PolicyOptimizer():
 
         if quality < threshold:
             logger.info(f"No significant configuration set found ({quality} < {threshold}). No base policy created.")
+            return None
+
+        if gx + 1 < minAgents:
+            logger.info(f"No significant number of agents found ({gx + 1} < {minAgents}). No base policy created.")
             return None
 
         return set(matrix.index[:gy + 1].tolist())

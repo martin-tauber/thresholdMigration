@@ -71,6 +71,10 @@ def parseArguments():
     migrateCmd.add_argument("--optimizethreshold", action="store", dest=ckey.optimizeThreshold, type=int,
         help=f"specifies the percentage of duplicates to be found for a base policy to be creates. The default is \'{cdefault.optimizeThreshold}\'.")
 
+    migrateCmd.add_argument("--minagents", action="store", dest=ckey.minAgents, type=int,
+        help=f"specifies the minimum number of agents a base policy must cover. If the number of configurations in the base policy is below this number, "
+            f"no base policy will be created. The default is \'{cdefault.minAgents}\'.")
+
     migrateCmd.add_argument("--beautify", action="store_true", dest=ckey.beautify,
         help=f"when creating policy names the monitor name is used. Often the monitor name will have an ending like '_CONTAINER'. If you specify this option, the ending will be " +
             f"removed. The defaukt is that the name is not beautified.")
@@ -145,7 +149,7 @@ def parseArguments():
     return parser.parse_args()
 
 
-def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFilenames, pconfig, agentGroup, beautify, optimzeThreshold, agentInfo,
+def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFilenames, pconfig, agentGroup, beautify, optimzeThreshold, minAgents, agentInfo,
         force, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group):
 
     # get the repository
@@ -161,7 +165,7 @@ def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFi
         agentConfigurations = instanceThresholdMigrator.migrate(force)
 
         # Generate Policies
-        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify, optimzeThreshold, agentInfo)
+        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify, optimzeThreshold, minAgents, agentInfo)
         (policies, tags) = policyFactory.generatePolicies(agentConfigurations)
 
         # Write Policies to file
@@ -180,7 +184,7 @@ def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFi
         logger.info(f"Found {len(rulesetConfigurations)} ruleset configurations.")
 
         # Generate Policies
-        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify, optimzeThreshold, agentInfo)
+        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify, optimzeThreshold, minAgents, agentInfo)
         (policies, tags) = policyFactory.generatePolicies(rulesetConfigurations)
 
         # Write Policies to file
@@ -239,6 +243,7 @@ try:
             config.agentGroup,
             config.beautify,
             config.optimizeThreshold,
+            config.minAgents,
             config.agentInfo,
             config.force,
             config.tenantId,
