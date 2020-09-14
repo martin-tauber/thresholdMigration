@@ -41,7 +41,8 @@ https://github.com/martin-tauber/thresholdMigration.git click on the *code* butt
 ## Export the thresholds from the Truesight Presentation server
 
 To migrate thresholds you first need to export the thresholds you want to migrate using the export utility provided by TrueSight. See ???
-for more information about how to export the thresholds from truesight.
+for more information about how to export the thresholds from truesight. You can the unzip the file in your prefered directory in the
+machine where you want to run the script.
 
 ## Running the tool
 

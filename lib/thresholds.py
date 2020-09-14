@@ -53,11 +53,19 @@ class InstanceThresholdMigrator():
 
     def migrate(self):
         logger.info(f"Migrating {len(self.thresholds)} instance thresholds ...")
+        unknownMonitorTypes = []
 
         configurations = []
         
         for threshold in self.thresholds:
             try:
+                if not threshold["monitorType"] in self.kmRepository.monitors:
+                    if not threshold["monitorType"] in unknownMonitorTypes:
+                        logger.warn(f"Monitor {threshold['monitorType']} not found in repository. Skipping threshold.")
+                        unknownMonitorTypes.append(threshold["monitorType"])
+
+                    continue
+
                 configurations.append(InstanceThresholdConfiguration(
                     agent = threshold["agent"],
                     port = threshold["port"],
@@ -120,7 +128,7 @@ class FileThresholdSet(ThresholdSet):
 
                         if row[0] == "PATROL Agent" and row[1] == "Monitor Type": continue
                     
-                    if row[19] == "false":
+                    if row[19].lower() == "false":
                         try: 
                             self.set.append({
                                 "agent": row[0].split(':')[0],
@@ -144,8 +152,9 @@ class FileThresholdSet(ThresholdSet):
                                 "suppressEvents": row[17],
                                 "thresholdType": row[18].lower()
                             })
-                        except:
+                        except Exception as error:
                             logger.error(f"An error occrued while processing row {rowno} of file {filename}. Skipping rest of file.")
+                            logger.error(error)
                             break
 
-                        rowno = rowno + 1
+                    rowno = rowno + 1

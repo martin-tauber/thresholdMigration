@@ -13,7 +13,7 @@
             "args": [
                 "migrate",
                 "--thresholds",
-                "/Users/martin/Downloads/tsim-blr-win01_AllInstanceThresholdSettings_2020_07_26_19_15_45.csv"
+                "/Users/martin/Downloads/thresholds.csv"
             ]
         },
         {
