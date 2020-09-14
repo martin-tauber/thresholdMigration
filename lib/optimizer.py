@@ -34,22 +34,18 @@ class PolicyOptimizer():
 
                 startColumn = gc.columns[2]
                 for monitorType in gc["_monitorType_"][len(self.agentInfo["header"]):].unique():
-                    logger.info(f"Optimizing policies for monitor '{monitorType}' ...")
                     matrix = gc.loc[gc._monitorType_==monitorType,startColumn:]
-                    logger.info(f"Found {len(matrix)} unique configurations for monitor '{monitorType}'.")
 
-                    configIds = self.optimizeMatrix(matrix, threshold, minAgents)
+                    configIds = self.optimizeMatrix(matrix, monitorType, threshold, minAgents)
                     if configIds != None:
                         idx = "-".join(list(name).append(monitorType)) if type(name) is tuple else f"{name}-{monitorType}"
                         baseConfigs[idx] = configIds
         else:
             startColumn = c.columns[2]
             for monitorType in c["_monitorType_"].unique():
-                logger.info(f"Optimizing policies for monitor '{monitorType}' ...")
                 matrix = c.loc[c._monitorType_==monitorType,startColumn:]
-                logger.info(f"Found {len(matrix)} unique configurations for monitor '{monitorType}'.")
 
-                configIds = self.optimizeMatrix(matrix, threshold, minAgents)
+                configIds = self.optimizeMatrix(matrix, monitorType, threshold, minAgents)
                 if configIds != None:
                     baseConfigs[monitorType] = configIds
 
@@ -73,12 +69,12 @@ class PolicyOptimizer():
         return matrix[c]
 
 
-    def optimizeMatrix(self, matrix, threshold, minAgents):
+    def optimizeMatrix(self, matrix, name, threshold, minAgents):
         # sort the columns by occurence of true
         sortedColumns = (matrix[matrix.columns.tolist()] == True).sum(axis = 0)
         sortedColumns = sortedColumns.loc[sortedColumns > 0].sort_values(ascending = False).index.tolist()
 
-        logger.info(f"Found {len(sortedColumns)} relevant agents.")
+        logger.info(f"Found {len(sortedColumns)} relevant agent(s) and {len(matrix)} configuration(s) for '{name}'.")
 
         # sort the rows by occurence of true
         sortedRows = (matrix[matrix.columns.tolist()] == True).sum(axis = 1).sort_values(ascending = False).index.tolist()
@@ -108,7 +104,7 @@ class PolicyOptimizer():
             y = y - 1
 
         quality = (gy + 1) * (gx + 1) / (maxx * maxy) * 100
-        logger.info(f"Found optimal configuration set containing {gy + 1} configurations, covering {gx + 1} agents. Total coverage {quality} %.")
+        logger.info(f"Found optimal configuration set containing {gy + 1} configuration(s), covering {gx + 1} agent(s). Total coverage {quality} %.")
 
         if quality < threshold:
             logger.info(f"No significant configuration set found ({quality} < {threshold}). No base policy created.")
