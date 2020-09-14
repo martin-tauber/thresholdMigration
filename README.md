@@ -191,6 +191,22 @@ The above command would load the configuration from the job1.mig file and overri
 
 ## Repositories
 
+To generate policies the policy generator needs to merge meta data found in the repository like the release and the solution name. The tool comes
+with cashed versions of the BMC repository. By default the tool will alway choose the latest version of the repository found in the cache. You can 
+override this behaviour by specifing the
+
+    --version <version>
+
+The tool will then look for the specified version in the cache. You can also override the directory were the tool will expect the cache with the
+
+    --cachedir <path>
+
+option.
+
+If you want ot migrate custom solutions you can 
+
+    
+
 
 
 ## Getting help
