@@ -170,7 +170,7 @@ class MonitoringConfiguration(AgentConfiguration):
 
 class InstanceThresholdConfiguration(AgentConfiguration):
     def __init__(self, agent, port, solution, release, monitorType, attribute, absoluteDeviation, autoClose, comparison,
-            durationInMins, minimumSamplingWindow, outsideBaseline, percentDeviation, predict, severity, threshold, instanceName, type):
+            durationInMins, minimumSamplingWindow, outsideBaseline, percentDeviation, predict, severity, threshold, instanceName, matchDeviceName, type):
 
         super().__init__(agent, port, solution, release, monitorType, attribute)
 
@@ -187,6 +187,7 @@ class InstanceThresholdConfiguration(AgentConfiguration):
         self.config["threshold"] = threshold
 
         self.config["instanceName"] = instanceName
+        self.config["matchDeviceName"] = matchDeviceName
         self.config["type"] = type
 
     def getId(self):
@@ -261,7 +262,7 @@ class InstanceThresholdConfiguration(AgentConfiguration):
                 "threshold": self.config["threshold"]
             },
             "instanceName": self.config["instanceName"],
-            "matchDeviceName": False,
+            "matchDeviceName": self.config["matchDeviceName"],
             "type": self.config["type"]
         })
 

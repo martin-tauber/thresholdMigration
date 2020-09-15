@@ -13,7 +13,7 @@
             "args": [
                 "migrate",
                 "--thresholds",
-                "../testdata/thresholds.csv"
+                "out.csv"
             ]
         },
         {

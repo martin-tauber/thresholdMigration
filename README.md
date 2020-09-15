@@ -11,7 +11,7 @@ You also need to make sure that you have the following python modules installed:
 * uuid
 * codecs
 * pandas
-* numpy
+* itertools
 
 If you are using a standard python installation, then use 
 
@@ -72,6 +72,9 @@ The first type is the 'BASE' policy. BASE policies are created by finding the bi
 BASE policies will be applied to all the agents which run that configuration. For every agent which runs a BASE policy a configuration
 file is generated in the tags directory. The configuraion file will contain all the tags for that agent. The file is in pconfig format to
 make it easier to distrubute the configuration to the agents. Base policies will have a prefix "BASE-".
+
+    PATROL_CONFIG
+    "/AgentSetup/Identification/Tags/TAG/BASE-NT_MEMORY” = { REPLACE = "Auto generated tag" }
 
 The second type of policy which is generated in the agent policy. The agent policy will contain all the configurations. which are not covered
 by a base policy. Agent policies will be named by the agent and port number.

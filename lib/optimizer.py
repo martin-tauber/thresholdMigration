@@ -1,4 +1,5 @@
 import pandas as pd
+from itertools import combinations
 
 from .logger import LoggerFactory
 
@@ -70,53 +71,43 @@ class PolicyOptimizer():
 
 
     def optimizeMatrix(self, matrix, name, threshold, minAgents):
-        # sort the columns by occurence of true
+        # sort the columns by occurence of true and remove columns that don't have any true value
         sortedColumns = (matrix[matrix.columns.tolist()] == True).sum(axis = 0)
         sortedColumns = sortedColumns.loc[sortedColumns > 0].sort_values(ascending = False).index.tolist()
 
         logger.info(f"Found {len(sortedColumns)} relevant agent(s) and {len(matrix)} configuration(s) for '{name}'.")
+        allIds = set(matrix.index.tolist())
 
-        # sort the rows by occurence of true
-        sortedRows = (matrix[matrix.columns.tolist()] == True).sum(axis = 1).sort_values(ascending = False).index.tolist()
+        maxCoverage = 0
+        for i in range(1, min(len(allIds) + 1, 3)):
+            for combination in combinations(allIds, i):
+                a=list(combination)
+                m = matrix.loc[list(combination),:]
+                s = m.all()
+                c = s.value_counts()
+                numagents = c[True] if True in c else 0
+#                numagents = matrix.loc[list(combination),:].all().value_counts()[True]
 
-        # rearange the matrix
-        matrix = matrix.reindex(sortedColumns, axis = 1).reindex(sortedRows)
+                coverage = i * numagents
+                if coverage > maxCoverage:
+                    baseIds = set(combination)
+                    maxCoverage = coverage
 
-        # get the maximum square containing true values
-        maxx = len(matrix.columns)
-        maxy = len(matrix.index)
-        x = 0
-        y = 0
+        agentIds = allIds - baseIds
+        numagents = matrix.loc[baseIds,:].all().value_counts()[True]
 
-        while (matrix.iloc[y,x] == True and y + 1 < maxy):
-            y = y + 1
-
-        gx = x
-        gy = y
-
-        while (y >= 0):
-            while (x + 1 < maxx and matrix.iloc[y,x + 1] == True):
-                x = x + 1
-                if (gx + 1) * (gy + 1) < (x + 1) * (y + 1):
-                    gx = x
-                    gy = y
-
-            y = y - 1
-
-        quality = (gy + 1) * (gx + 1) / (maxx * maxy) * 100
-        logger.info(f"Found optimal configuration set containing {gy + 1} configuration(s), covering {gx + 1} agent(s). Total coverage {quality} %.")
+        quality = (len(baseIds) * numagents) / ((len(baseIds) * numagents) + (matrix.loc[agentIds,:].sum()).sum()) * 100
+        logger.info(f"Found optimal configuration set containing {len(baseIds)} configuration(s), covering {numagents} agent(s). Total coverage {quality} %.")
 
         if quality < threshold:
             logger.info(f"No significant configuration set found ({quality} < {threshold}). No base policy created.")
             return None
 
-        if gx + 1 < minAgents:
-            logger.info(f"No significant number of agents found ({gx + 1} < {minAgents}). No base policy created.")
+        if numagents < minAgents:
+            logger.info(f"No significant number of agents found ({numagents} < {minAgents}). No base policy created.")
             return None
 
-        return set(matrix.index[:gy + 1].tolist())
-
-
+        return baseIds
 
     def createConfigurationMatrix(self, agentConfigurations):
         # build agent config matrix

@@ -52,6 +52,10 @@ class InstanceThresholdMigrator():
             "All Baselines": "all"
         }
 
+    def toBool(self, value):
+        if value.lower() == "false": return False
+        return True    
+
     def migrate(self, force):
         logger.info(f"Migrating {len(self.thresholds)} instance thresholds ...")
         unknownMonitorTypes = []
@@ -77,17 +81,18 @@ class InstanceThresholdMigrator():
 
                     # Details
                     absoluteDeviation = threshold["absoluteDeviation"],
-                    autoClose = threshold["autoClose"],
+                    autoClose = self.toBool(threshold["autoClose"]),
                     comparison = self.absoluteConditionMap[threshold["condition"]] if threshold["thresholdType"] == "absolute" else self.conditionMap[threshold["condition"]] ,
                     durationInMins = threshold["duration"],
                     minimumSamplingWindow = threshold["minSampleWindow"],
                     outsideBaseline = self.baselineMap[threshold["outsideBaseline"]] if threshold["outsideBaseline"] in self.baselineMap else "notEnabled",
                     percentDeviation = threshold["deviation"],
-                    predict = threshold["predict"],
+                    predict = self.toBool(threshold["predict"]),
                     severity = threshold["severity"],
                     threshold = threshold["value"],
 
                     instanceName = threshold["instance"],
+                    matchDeviceName = False,
                     type = threshold["thresholdType"]
                 ))
             except Exception as error:
