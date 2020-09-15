@@ -1,4 +1,7 @@
 import pandas as pd
+import threading
+import queue
+
 from itertools import combinations
 
 from .logger import LoggerFactory
@@ -75,11 +78,11 @@ class PolicyOptimizer():
         sortedColumns = (matrix[matrix.columns.tolist()] == True).sum(axis = 0)
         sortedColumns = sortedColumns.loc[sortedColumns > 0].sort_values(ascending = False).index.tolist()
 
-        logger.info(f"Found {len(sortedColumns)} relevant agent(s) and {len(matrix)} configuration(s) for '{name}'.")
+        logger.info(f"Found {len(sortedColumns)} relevant agent(s) and {len(matrix)} configuration(s) for *** '{name}' ***.")
         allIds = set(matrix.index.tolist())
 
         maxCoverage = 0
-        for i in range(1, min(len(allIds) + 1, 3)):
+        for i in range(1, min(len(allIds) + 1, 5)):
             for combination in combinations(allIds, i):
                 a=list(combination)
                 m = matrix.loc[list(combination),:]
@@ -165,3 +168,8 @@ class PolicyOptimizer():
         configurationMatrix = configurationMatrix.fillna(False)
 
         return configurationMatrix, uniqueConfigurations
+
+
+class Worker(threadting.Thread):
+    def __init__(self):
+        pass
