@@ -11,12 +11,16 @@ from lib.agentinfo import AgentInfoFactory
 logger = LoggerFactory.getLogger(__name__)
 
 class PolicyOptimizer():
-    def __init__(self, agentInfo):
+    def __init__(self, agentInfo, minAgents, depth, threads):
         self.agentInfo = AgentInfoFactory.getAgentInfo(agentInfo) if agentInfo != None else None
+        self.minAgents = minAgents
+        self.depth = depth
+        self.threads = threads
+
         self.totalQuality = 0
 
 
-    def optimize(self, agentConfigurations, threshold, minAgents):
+    def optimize(self, agentConfigurations, threshold):
         baseConfigs = {}
 
         (c, configurations) = self.createConfigurationMatrix(agentConfigurations)
@@ -41,7 +45,7 @@ class PolicyOptimizer():
                 for monitorType in gc["_monitorType_"][len(self.agentInfo["header"]):].unique():
                     matrix = gc.loc[gc._monitorType_==monitorType,startColumn:]
 
-                    configIds = self.optimizeMatrix(matrix, monitorType, threshold, minAgents)
+                    configIds = self.optimizeMatrix(matrix, monitorType, threshold)
                     if configIds != None:
                         idx = "-".join(list(name).append(monitorType)) if type(name) is tuple else f"{name}-{monitorType}"
                         baseConfigs[idx] = configIds
@@ -50,7 +54,7 @@ class PolicyOptimizer():
             for monitorType in c["_monitorType_"].unique():
                 matrix = c.loc[c._monitorType_==monitorType,startColumn:]
 
-                configIds = self.optimizeMatrix(matrix, monitorType, threshold, minAgents)
+                configIds = self.optimizeMatrix(matrix, monitorType, threshold)
                 if configIds != None:
                     baseConfigs[monitorType] = configIds
 
@@ -76,7 +80,7 @@ class PolicyOptimizer():
         return matrix[c]
 
 
-    def optimizeMatrix(self, matrix, name, threshold, minAgents):
+    def optimizeMatrix(self, matrix, name, threshold):
         s = matrix.sum(axis = 1)
         m = matrix.loc[list(s.loc[s > 1].index),:]
 
@@ -93,7 +97,7 @@ class PolicyOptimizer():
         result = Result()
 
         c = 0
-        for i in range(1, min(len(allIds) + 1, 3)):
+        for i in range(1, min(len(allIds) + 1, self.depth)):
             for combination in combinations(allIds, i):
                 q.put(combination)
                 c = c + 1
@@ -101,7 +105,7 @@ class PolicyOptimizer():
         logger.info(f"Verifying {c} combinations ...")
 
         workers = []
-        for i in range(0,10):
+        for i in range(0,self.threads):
             t = Worker(q, m, result)
             t.start()
             workers.append(t)
@@ -171,8 +175,7 @@ class PolicyOptimizer():
 
             columns[agentId][index]=True
 
-        logger.info(f"Optimizing policies for {len(columns) - 2} agents ...")
-        logger.info(f"Found {len(uniqueConfigurations)} unique configurations.")
+        logger.info(f"Optimizing policies for {len(columns) - 2} agents and {len(uniqueConfigurations)} unique configurations. Using {self.threads} threads and a depth of {self.depth}.")
 
         configurationMatrix=pd.DataFrame()
         for header in columns:

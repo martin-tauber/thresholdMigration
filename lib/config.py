@@ -13,6 +13,8 @@ class CKey():
     beautify = "beautify"
     optimizeThreshold = "optimizeThreshold"
     minAgents = "minAgents"
+    depth = "depth"
+    threads = "threads"
     agentInfo = "agentInfo"
     thresholds = "thresholds"
     pconfig = "pconfig"
@@ -43,6 +45,8 @@ class CDefault():
     beautify = False
     optimizeThreshold = 20
     minAgents = 2
+    depth = 3
+    threads = 8
     agentInfo = None
     thresholds = None
     pconfig = None
@@ -117,7 +121,7 @@ class Config():
 class MigrateConfig(Config):
     keys = [ckey.repositoryDir, ckey.cacheDir, ckey.repositoryVersion, ckey.policyDir, ckey.tagsDir, ckey.agentGroup, ckey.beautify, ckey.optimizeThreshold, ckey.thresholds,
         ckey.pconfig, ckey.tenantId, ckey.tenantName, ckey.basePrecedence, ckey.agentPrecedence, ckey.shared, ckey.enabled, ckey.owner, ckey.group, ckey.agentInfo,
-        ckey.force, ckey.minAgents]
+        ckey.force, ckey.minAgents, ckey.depth, ckey.threads]
 
     def __init__(self, args):
         super().__init__(args)

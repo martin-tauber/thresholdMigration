@@ -13,7 +13,7 @@ logger = LoggerFactory.getLogger(__name__)
 # Policies
 #-----------------------
 class PolicyFactory():
-    def __init__(self, agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify = False, optimizeThreshold = 20, minAgents = 2, agentInfo = None):
+    def __init__(self, agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify = False, optimizeThreshold = 20, minAgents = 2, depth = 3, threads = 8, agentInfo = None):
         self.agentGroup = agentGroup
         self.tenantId = tenantId
         self.tenantName = tenantName
@@ -25,9 +25,8 @@ class PolicyFactory():
         self.group = group
         self.beautify = beautify
         self.optimizeThreshold = optimizeThreshold
-        self.minAgents = minAgents
 
-        self.optimizer = PolicyOptimizer(agentInfo)
+        self.optimizer = PolicyOptimizer(agentInfo, minAgents, depth, threads)
 
     def generatePolicies(self, agentConfigurations):
         logger.info("Generating policies ...")
@@ -38,7 +37,7 @@ class PolicyFactory():
         taggedCount = 0
         agentCount = 0
 
-        (configurationMatrix, configurations, baseConfigurations) = self.optimizer.optimize(agentConfigurations, self.optimizeThreshold, self.minAgents)
+        (configurationMatrix, configurations, baseConfigurations) = self.optimizer.optimize(agentConfigurations, self.optimizeThreshold)
 
         # generate the base policies
         for id, configIds in baseConfigurations.items():
