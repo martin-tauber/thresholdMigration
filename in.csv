@@ -1,5 +1,0 @@
-PATROL Agent,Monitor Type,Device Name,Monitor Instance,Attribute,Severity,Duration (mins),Threshold Condition,Threshold Value,UOM,Outside Baseline,Auto Close,Predict,Min Sampling Window (mins),Baseline Type,Absolute Deviation,% Deviation,Suppress Events,Threshold Type,CMA created?
-pa1-host:4000,NT_CACHE,device1,Cache,CACcachCopyReadHitsPercent,Critical,0,>,0,%,Not Enabled,TRUE,FALSE,,,,,FALSE,ABSOLUTE,FALSE
-pa1-host:4000,NT_CPU,device1,_Total,CPUprcrProcessorTimePercent,Minor,0,>,0,%,Not Enabled,TRUE,FALSE,,,,,FALSE,ABSOLUTE,FALSE
-pa1-host:4000,NT_HEALTH,device1,Health At A Glance,MemoryUsage,Major,0,>,0,% of Memory Used,Not Enabled,TRUE,FALSE,,,,,FALSE,ABSOLUTE,FALSE
-pa1-host:4000,NT_LOGICAL_DISKS_CONTAINER,device1,Logical Disks,LDStatus,Major,5,>,1,0=OK;1=Instance Deleted;,Hourly Baseline,TRUE,TRUE,,,,,FALSE,ABSOLUTE,FALSE
