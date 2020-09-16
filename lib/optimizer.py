@@ -88,7 +88,8 @@ class PolicyOptimizer():
         sortedColumns = (m[m.columns.tolist()] == True).sum(axis = 0)
         sortedColumns = sortedColumns.loc[sortedColumns > 0].sort_values(ascending = False).index.tolist()
 
-        logger.info(f"Found {len(sortedColumns)} relevant agent(s) and {len(matrix)} configuration(s) {len(m)} being relevant for *** '{name}' ***.")
+        logger.info(f"***** {name} *****")
+        logger.info(f"Found {len(sortedColumns)} relevant agent(s) and {len(matrix)} configuration(s) {len(m)} being relevant.")
         if len(sortedColumns) == 0 or len(m) == 0: return None
 
         allIds = set(m.index.tolist())
@@ -97,7 +98,7 @@ class PolicyOptimizer():
         result = Result()
 
         c = 0
-        for i in range(1, min(len(allIds) + 1, self.depth)):
+        for i in range(1, min(len(allIds) + 1, self.depth + 1)):
             for combination in combinations(allIds, i):
                 q.put(combination)
                 c = c + 1
