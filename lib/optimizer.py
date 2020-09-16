@@ -74,40 +74,48 @@ class PolicyOptimizer():
 
 
     def optimizeMatrix(self, matrix, name, threshold, minAgents):
+        s = matrix.sum(axis = 1)
+        m = matrix.loc[list(s.loc[s > 1].index),:]
+
         # sort the columns by occurence of true and remove columns that don't have any true value
-        sortedColumns = (matrix[matrix.columns.tolist()] == True).sum(axis = 0)
+        sortedColumns = (m[m.columns.tolist()] == True).sum(axis = 0)
         sortedColumns = sortedColumns.loc[sortedColumns > 0].sort_values(ascending = False).index.tolist()
 
-        logger.info(f"Found {len(sortedColumns)} relevant agent(s) and {len(matrix)} configuration(s) for *** '{name}' ***.")
-        allIds = set(matrix.index.tolist())
+        logger.info(f"Found {len(sortedColumns)} relevant agent(s) and {len(matrix)} configuration(s) {len(m)} being relevant for *** '{name}' ***.")
+        if len(sortedColumns) == 0 or len(m) == 0: return None
 
-        maxCoverage = 0
+        allIds = set(m.index.tolist())
+
+        q = Queue()
+        result = Result()
+
+        c = 0
         for i in range(1, min(len(allIds) + 1, 5)):
             for combination in combinations(allIds, i):
-                a=list(combination)
-                m = matrix.loc[list(combination),:]
-                s = m.all()
-                c = s.value_counts()
-                numagents = c[True] if True in c else 0
-#                numagents = matrix.loc[list(combination),:].all().value_counts()[True]
+                q.put(combination)
+                c = c + 1
+        
+        logger.info(f"Verifying {c} combinations ...")
 
-                coverage = i * numagents
-                if coverage > maxCoverage:
-                    baseIds = set(combination)
-                    maxCoverage = coverage
+        workers = []
+        for i in range(0,10):
+            t = Worker(q, m, result)
+            t.start()
+            workers.append(t)
+
+        for worker in workers:
+            worker.join()
+
+        baseIds = result.baseIds
 
         agentIds = allIds - baseIds
-        numagents = matrix.loc[baseIds,:].all().value_counts()[True]
+        numagents = m.loc[baseIds,:].all().value_counts()[True]
 
         quality = (len(baseIds) * numagents) / ((len(baseIds) * numagents) + (matrix.loc[agentIds,:].sum()).sum()) * 100
         logger.info(f"Found optimal configuration set containing {len(baseIds)} configuration(s), covering {numagents} agent(s). Total coverage {quality} %.")
 
         if quality < threshold:
             logger.info(f"No significant configuration set found ({quality} < {threshold}). No base policy created.")
-            return None
-
-        if numagents < minAgents:
-            logger.info(f"No significant number of agents found ({numagents} < {minAgents}). No base policy created.")
             return None
 
         return baseIds
@@ -169,7 +177,59 @@ class PolicyOptimizer():
 
         return configurationMatrix, uniqueConfigurations
 
-
-class Worker(threadting.Thread):
+class Result():
     def __init__(self):
-        pass
+        self.maxCoverage = 0
+        self.baseIds = None
+        self.lock = threading.Lock()
+
+    def set(self, maxCoverage, baseIds):
+        self.lock.acquire()
+        if maxCoverage > self.maxCoverage:
+            self.maxCoverage = maxCoverage
+            self.baseIds = baseIds
+
+        self.lock.release()
+
+
+class Worker(threading.Thread):
+    def __init__(self, queue, matrix, result):
+        threading.Thread.__init__(self)
+        self.queue = queue
+        self.matrix = matrix
+        self.result = result
+
+    def run(self):
+        combination = self.queue.get()
+        while not combination == None:
+            m = self.matrix.loc[list(combination),:]
+            s = m.all()
+            c = s.value_counts()
+            numagents = c[True] if True in c else 0
+
+            coverage = len(combination) * numagents
+            self.result.set(coverage, set(combination))
+
+            combination = self.queue.get()
+
+
+class Queue():
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.queue = queue.Queue(0)
+
+    def get(self):
+        self.lock.acquire()
+        if not self.queue.empty():
+            d = self.queue.get()
+            self.lock.release()
+            return d
+
+        else:
+            self.lock.release()
+            return None
+
+    def put(self, d):
+        self.lock.acquire()
+        self.queue.put(d)
+        self.lock.release()
