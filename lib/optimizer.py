@@ -13,6 +13,7 @@ logger = LoggerFactory.getLogger(__name__)
 class PolicyOptimizer():
     def __init__(self, agentInfo):
         self.agentInfo = AgentInfoFactory.getAgentInfo(agentInfo) if agentInfo != None else None
+        self.totalQuality = 0
 
 
     def optimize(self, agentConfigurations, threshold, minAgents):
@@ -53,6 +54,8 @@ class PolicyOptimizer():
                 if configIds != None:
                     baseConfigs[monitorType] = configIds
 
+        quality = self.totalQuality / ((c.iloc[:,2:].sum()).sum()) * 100
+        logger.info(f"Total coverage of base policies {'{:.2f}'.format(quality)}%.")
 
         return c, configurations, baseConfigs
 
@@ -90,7 +93,7 @@ class PolicyOptimizer():
         result = Result()
 
         c = 0
-        for i in range(1, min(len(allIds) + 1, 5)):
+        for i in range(1, min(len(allIds) + 1, 3)):
             for combination in combinations(allIds, i):
                 q.put(combination)
                 c = c + 1
@@ -112,7 +115,9 @@ class PolicyOptimizer():
         numagents = m.loc[baseIds,:].all().value_counts()[True]
 
         quality = (len(baseIds) * numagents) / ((len(baseIds) * numagents) + (matrix.loc[agentIds,:].sum()).sum()) * 100
-        logger.info(f"Found optimal configuration set containing {len(baseIds)} configuration(s), covering {numagents} agent(s). Total coverage {quality} %.")
+        logger.info(f"Found optimal configuration set containing {len(baseIds)} configuration(s), covering {numagents} agent(s). Total coverage {'{:.2f}'.format(quality)}%.")
+
+        self.totalQuality = self.totalQuality + (len(baseIds) * numagents)
 
         if quality < threshold:
             logger.info(f"No significant configuration set found ({quality} < {threshold}). No base policy created.")
