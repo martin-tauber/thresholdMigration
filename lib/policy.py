@@ -135,6 +135,11 @@ class PolicyFactory():
 
         for id in policies:
             logger.info(f"Generating classic threshold policy THRESHOLD-{id} - covering {count[id]} instance threshold configurations.")
+
+            maxConfigs = 400
+            if count[id]> maxConfigs:
+                logger.warn(f"Generated policy THRESHOLD-{id} contains more instance threshold configurations per policy than recommanded ({maxConfigs})")
+                logger.warn(f"try to reduct the number of policies by increasing --classicprefix.")
                 
 
         return list(policies.values()), tags
