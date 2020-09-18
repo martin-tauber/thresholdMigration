@@ -112,6 +112,9 @@ def parseArguments():
     migrateCmd.add_argument("--agentprecedence", action="store", dest=ckey.agentPrecedence,
         help=f"precedence to be used for creating agent policies generation. The default precedence \'{cdefault.agentPrecedence}\'.")
 
+    migrateCmd.add_argument("--thresholdprecedence", action="store", dest=ckey.thresholdPrecedence,
+        help=f"precedence to be used for creating agent policies generation. The default precedence \'{cdefault.thresholdPrecedence}\'.")
+
     migrateCmd.add_argument("--shared", action="store_true", dest=ckey.shared, 
         help=f"share the generated policy. The default is that the policy is not shared")
 
@@ -164,7 +167,7 @@ def parseArguments():
 
 
 def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFilenames, pconfig, agentGroup, beautify, optimzeThreshold, minAgents, depth, threads, agentInfo,
-        force, classic, classicPrefix, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group):
+        force, classic, classicPrefix, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, thresholdPrecedence, owner, group):
 
     # get the repository
     kmRepository = KMRepository.get(repositoryDir, cacheDir, version)
@@ -179,7 +182,7 @@ def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFi
         agentConfigurations = instanceThresholdMigrator.migrate(force)
 
         # Generate Policies
-        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify, classic, classicPrefix, optimzeThreshold, minAgents, depth, threads, agentInfo)
+        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, thresholdPrecedence, owner, group, beautify, classic, classicPrefix, optimzeThreshold, minAgents, depth, threads, agentInfo)
         (policies, tags) = policyFactory.generatePolicies(agentConfigurations)
 
         # Write Policies to file
@@ -198,7 +201,7 @@ def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFi
         logger.info(f"Found {len(rulesetConfigurations)} ruleset configurations.")
 
         # Generate Policies
-        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify, optimzeThreshold, minAgents, depth, threads, agentInfo)
+        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, thresholdPrecedence, owner, group, beautify, optimzeThreshold, minAgents, depth, threads, agentInfo)
         (policies, tags) = policyFactory.generatePolicies(rulesetConfigurations)
 
         # Write Policies to file
@@ -270,6 +273,7 @@ try:
             config.enabled,
             config.basePrecedence,
             config.agentPrecedence,
+            config.thresholdPrecedence,
             config.owner,
             config.group)
 

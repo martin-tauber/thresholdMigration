@@ -28,6 +28,7 @@ class CKey():
     tenantName = "tenantName"
     basePrecedence = "basePrecedence"
     agentPrecedence = "agentPrecedence"
+    thresholdPrecedence = "thresholdPrecedence"
     shared = "shared"
     enabled = "enabled"
     owner = "owner"
@@ -62,6 +63,7 @@ class CDefault():
     tenantName = "*"
     basePrecedence = "199"
     agentPrecedence = "899"
+    thresholdPrecedence = "299"
     shared = False
     enabled = False
     owner = "admin"
@@ -125,7 +127,7 @@ class Config():
 class MigrateConfig(Config):
     keys = [ckey.repositoryDir, ckey.cacheDir, ckey.repositoryVersion, ckey.policyDir, ckey.tagsDir, ckey.agentGroup, ckey.beautify, ckey.optimizeThreshold, ckey.thresholds,
         ckey.pconfig, ckey.tenantId, ckey.tenantName, ckey.basePrecedence, ckey.agentPrecedence, ckey.shared, ckey.enabled, ckey.owner, ckey.group, ckey.agentInfo,
-        ckey.force, ckey.minAgents, ckey.depth, ckey.threads, ckey.classic, ckey.classicPrefix]
+        ckey.force, ckey.minAgents, ckey.depth, ckey.threads, ckey.classic, ckey.classicPrefix, ckey.thresholdPrecedence]
 
     def __init__(self, args):
         super().__init__(args)
