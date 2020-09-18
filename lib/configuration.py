@@ -169,10 +169,12 @@ class MonitoringConfiguration(AgentConfiguration):
 
 
 class InstanceThresholdConfiguration(AgentConfiguration):
-    def __init__(self, agent, port, solution, release, monitorType, attribute, absoluteDeviation, autoClose, comparison,
+    def __init__(self, agent, port, solution, release, monitorType, device, attribute, absoluteDeviation, autoClose, comparison,
             durationInMins, minimumSamplingWindow, outsideBaseline, percentDeviation, predict, severity, threshold, instanceName, matchDeviceName, type):
 
         super().__init__(agent, port, solution, release, monitorType, attribute)
+
+        self.device = device
 
         # Details
         self.config["absoluteDeviation"] = absoluteDeviation
@@ -193,7 +195,7 @@ class InstanceThresholdConfiguration(AgentConfiguration):
     def getId(self):
         return f"{self.solution}-{self.monitorType}-{self.attribute}-{self.instanceName}"
 
-    def generate(self, policy, policyFactory):
+    def generate(self, policy, policyFactory, classic = False):
         if not "serverThresholdConfiguration" in policy:
             policy["serverThresholdConfiguration"] = {
                 "solutionThresholds": []
@@ -261,8 +263,8 @@ class InstanceThresholdConfiguration(AgentConfiguration):
                 "severity": self.config["severity"],
                 "threshold": self.config["threshold"]
             },
-            "instanceName": self.config["instanceName"],
-            "matchDeviceName": self.config["matchDeviceName"],
+            "instanceName": f'{self.device}/{self.config["instanceName"]}' if classic else self.config["instanceName"],
+            "matchDeviceName": True if classic else False,
             "type": self.config["type"]
         })
 

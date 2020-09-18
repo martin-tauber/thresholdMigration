@@ -6,6 +6,7 @@ import re
 from .logger import LoggerFactory
 from lib.agentinfo import AgentInfoFactory
 from lib.optimizer import PolicyOptimizer
+from lib.configuration import InstanceThresholdConfiguration
 
 logger = LoggerFactory.getLogger(__name__)
 
@@ -13,7 +14,7 @@ logger = LoggerFactory.getLogger(__name__)
 # Policies
 #-----------------------
 class PolicyFactory():
-    def __init__(self, agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify = False, optimizeThreshold = 20, minAgents = 2, depth = 3, threads = 8, agentInfo = None):
+    def __init__(self, agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify = False, classic = False, optimizeThreshold = 20, minAgents = 2, depth = 3, threads = 8, agentInfo = None):
         self.agentGroup = agentGroup
         self.tenantId = tenantId
         self.tenantName = tenantName
@@ -24,14 +25,30 @@ class PolicyFactory():
         self.owner = owner
         self.group = group
         self.beautify = beautify
+        self.classic = classic
         self.optimizeThreshold = optimizeThreshold
 
         self.optimizer = PolicyOptimizer(agentInfo, minAgents, depth, threads)
 
     def generatePolicies(self, agentConfigurations):
         logger.info("Generating policies ...")
-        policies = []
-        tags = {}
+        if self.classic:
+            instanceThresholdConfigurations = []
+            otherConfigurations = []
+
+            for configuration in agentConfigurations:
+                if isinstance(configuration, InstanceThresholdConfiguration):
+                    instanceThresholdConfigurations.append(configuration)
+                else:
+                    otherConfigurations.append(configuration)
+
+            (policies, tags) = self.generatePoliciesClassic(agentConfigurations)
+
+            agentConfigurations = otherConfigurations
+
+        else:
+            policies = []
+            tags = {}
 
         baseCount = 0
         taggedCount = 0
@@ -88,6 +105,26 @@ class PolicyFactory():
         logger.info(f"Generated {len(policies)} policies. ({baseCount} base policies, {agentCount} agent policies, {len(tags)} tagged agents)")
         return policies, tags
 
+
+    def generatePoliciesClassic(self, instanceThresholdConfiguration):
+        policies = {}
+        tags = {}
+
+        for configuration in instanceThresholdConfiguration:
+            agentId = f"{configuration.agent}:{configuration.port}"
+            id = f"{configuration.monitorType}-{configuration.attribute}"
+            if not id in policies:
+                policies[id] = self.createPolicy(f'TAG EQUALS "THRESHOLD-{id}"', f"THRESHOLD-{id}",
+                    self.tenantId, self.tenantName, self.shared, self.enabled, self.basePrecedence, self.owner, self.group,
+                    "Auto generated threshold policy")
+
+            configuration.generate(policies[id], self, classic = True)
+
+            # add agents to tags
+            if not agentId in tags: tags[agentId] = []
+            tags[agentId].extend([f"THRESHOLD-{id}"])
+
+        return list(policies.values()), tags
 
 
     def createPolicy(self, agentSelectionCriteria, name, tenantId, tenantName, shared, enabled, precedence, owner, group, description):

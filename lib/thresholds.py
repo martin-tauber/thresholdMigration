@@ -77,6 +77,7 @@ class InstanceThresholdMigrator():
                     solution = self.kmRepository.monitors[threshold["monitorType"]]["solution"] if threshold["monitorType"] in self.kmRepository.monitors else "unknown",
                     release = self.kmRepository.monitors[threshold["monitorType"]]["release"] if threshold["monitorType"] in self.kmRepository.monitors else "unknown",
                     monitorType = threshold["monitorType"],
+                    device = threshold["device"],
                     attribute = threshold["attribute"],
 
                     # Details

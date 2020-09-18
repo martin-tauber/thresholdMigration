@@ -13,7 +13,8 @@
             "args": [
                 "migrate",
                 "--thresholds",
-                "out.csv"
+                "/Users/martin/Downloads/InstanceThresholdsSanofi_E21_E111/*.csv",
+                "--classic"
             ]
         },
         {

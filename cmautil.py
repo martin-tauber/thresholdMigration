@@ -69,7 +69,7 @@ def parseArguments():
             f"service would be named BASE-<AGENTGROUP>-NT_SERVICE_CONTAINER by default. The default is \'{cdefault.agentGroup}\'.")
 
     migrateCmd.add_argument("--optimizethreshold", action="store", dest=ckey.optimizeThreshold, type=int,
-        help=f"specifies the percentage of duplicates to be found for a base policy to be creates. The default is \'{cdefault.optimizeThreshold}\'.")
+        help=f"specifies the percentage of coverage to be exceeded for a base policy to be creates. The default is \'{cdefault.optimizeThreshold}\'.")
 
     migrateCmd.add_argument("--minagents", action="store", dest=ckey.minAgents, type=int,
         help=f"specifies the minimum number of agents a base policy must cover. If the number of configurations in the base policy is below this number, "
@@ -77,10 +77,14 @@ def parseArguments():
 
     migrateCmd.add_argument("--depth", action="store", dest=ckey.depth, type=int,
         help=f"specifies the maximum number of configurations a base policy will contain. The higher the number the more configuration combinations the optimizer is "
-            "going to scan. Use this option with care since it might result in long running optimzer phases. The default is \'{cdefault.depth}\'.")
+            f"going to scan. Use this option with care since it might result in long running optimzer phases. The default is \'{cdefault.depth}\'.")
 
     migrateCmd.add_argument("--threads", action="store", dest=ckey.threads, type=int,
         help=f"specifies the number of worker threads the optimizer will span to find optimal base policies. The default is \'{cdefault.threads}\'.")
+
+    migrateCmd.add_argument("--classic", action="store_true", dest=ckey.classic,
+        help=f"Skip optimization phase while processing server instance thresholds and generate policies which will contain all the server thresholds for one attribute in "
+            "one policy.")
 
     migrateCmd.add_argument("--beautify", action="store_true", dest=ckey.beautify,
         help=f"when creating policy names the monitor name is used. Often the monitor name will have an ending like '_CONTAINER'. If you specify this option, the ending will be " +
@@ -157,7 +161,7 @@ def parseArguments():
 
 
 def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFilenames, pconfig, agentGroup, beautify, optimzeThreshold, minAgents, depth, threads, agentInfo,
-        force, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group):
+        force, classic, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group):
 
     # get the repository
     kmRepository = KMRepository.get(repositoryDir, cacheDir, version)
@@ -172,7 +176,7 @@ def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFi
         agentConfigurations = instanceThresholdMigrator.migrate(force)
 
         # Generate Policies
-        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify, optimzeThreshold, minAgents, depth, threads, agentInfo)
+        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify, classic, optimzeThreshold, minAgents, depth, threads, agentInfo)
         (policies, tags) = policyFactory.generatePolicies(agentConfigurations)
 
         # Write Policies to file
@@ -255,6 +259,7 @@ try:
             config.threads,
             config.agentInfo,
             config.force,
+            config.classic,
             config.tenantId,
             config.tenantName,
             config.shared,
