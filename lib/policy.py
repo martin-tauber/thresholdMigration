@@ -85,8 +85,8 @@ class PolicyFactory():
                     agentConfigIds = agentConfigIds.difference(baseConfigIds)
 
                     # add agents to tags
-                    if not agentId in tags: tags[agentId] = []
-                    tags[agentId].extend([f"BASE-{id}"])
+                    if not agentId in tags: tags[agentId] = set()
+                    tags[agentId].add(f"BASE-{id}")
 
             # if we still have config ids we'll create an agent policy
             if agentConfigIds:
@@ -112,17 +112,19 @@ class PolicyFactory():
 
         for configuration in instanceThresholdConfiguration:
             agentId = f"{configuration.agent}:{configuration.port}"
-            id = f"{configuration.monitorType}-{configuration.attribute}"
+            id = f"{configuration.device[0].upper()}-{configuration.monitorType}-{configuration.attribute}"
             if not id in policies:
-                policies[id] = self.createPolicy(f'TAG EQUALS "THRESHOLD-{id}"', f"THRESHOLD-{id}",
+                policyname =  f"THRESHOLD-{id}"
+                policies[id] = self.createPolicy(f'TAG EQUALS "THRESHOLD-{id}"', policyname,
                     self.tenantId, self.tenantName, self.shared, self.enabled, self.basePrecedence, self.owner, self.group,
                     "Auto generated threshold policy")
+                logger.info(f"Generation classic threshold policy {policyname}")
 
             configuration.generate(policies[id], self, classic = True)
 
             # add agents to tags
-            if not agentId in tags: tags[agentId] = []
-            tags[agentId].extend([f"THRESHOLD-{id}"])
+            if not agentId in tags: tags[agentId] = set()
+            tags[agentId].add(f"THRESHOLD-{id}")
 
         return list(policies.values()), tags
 
