@@ -58,6 +58,10 @@ def parseArguments():
     migrateCmd.add_argument("--tagsdir", action="store", dest=ckey.tagsDir,
         help=f"path to the directory where the generated policies should be stored. The default is \'{cdefault.tagsDir}\'.'")
 
+    #------------------
+    # Optimzer
+    #------------------
+
     migrateCmd.add_argument("--agentinfo", action="store", dest=ckey.agentInfo,
         help=f"this argument takes a filename which contains agent information. The file must be in csv format with the hostname in the first column and the other " +
             f"columns containing information about the host. For exampld there could be a column 'environemt' which has the values 'Production' and 'test'. "+
@@ -81,6 +85,9 @@ def parseArguments():
 
     migrateCmd.add_argument("--threads", action="store", dest=ckey.threads, type=int,
         help=f"specifies the number of worker threads the optimizer will span to find optimal base policies. The default is \'{cdefault.threads}\'.")
+
+    migrateCmd.add_argument("--timeout", action="store", dest=ckey.timeout, type=int,
+        help=f"Number of minutes after which the optimizer should timeout even if it didn't find the optimal result. \'{cdefault.timeout}\'.")
 
     migrateCmd.add_argument("--classic", action="store_true", dest=ckey.classic,
         help=f"Skip optimization phase while processing server instance thresholds and generate policies which will contain all the server thresholds for one attribute in "
@@ -166,7 +173,7 @@ def parseArguments():
     return parser.parse_args()
 
 
-def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFilenames, pconfig, agentGroup, beautify, optimzeThreshold, minAgents, depth, threads, agentInfo,
+def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFilenames, pconfig, agentGroup, beautify, optimzeThreshold, minAgents, depth, threads, timeout, agentInfo,
         force, classic, classicPrefix, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, thresholdPrecedence, owner, group):
 
     # get the repository
@@ -182,7 +189,7 @@ def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFi
         agentConfigurations = instanceThresholdMigrator.migrate(force)
 
         # Generate Policies
-        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, thresholdPrecedence, owner, group, beautify, classic, classicPrefix, optimzeThreshold, minAgents, depth, threads, agentInfo)
+        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, thresholdPrecedence, owner, group, beautify, classic, classicPrefix, optimzeThreshold, minAgents, depth, threads, timeout, agentInfo)
         (policies, tags) = policyFactory.generatePolicies(agentConfigurations)
 
         # Write Policies to file
@@ -201,7 +208,7 @@ def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFi
         logger.info(f"Found {len(rulesetConfigurations)} ruleset configurations.")
 
         # Generate Policies
-        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, thresholdPrecedence, owner, group, beautify, optimzeThreshold, minAgents, depth, threads, agentInfo)
+        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, thresholdPrecedence, owner, group, beautify, classic, classicPrefix, optimzeThreshold, minAgents, depth, threads, timeout, agentInfo)
         (policies, tags) = policyFactory.generatePolicies(rulesetConfigurations)
 
         # Write Policies to file
@@ -263,6 +270,7 @@ try:
             config.minAgents,
             config.depth,
             config.threads,
+            config.timeout,
             config.agentInfo,
             config.force,
             config.classic,

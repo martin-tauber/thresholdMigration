@@ -1,6 +1,7 @@
 import pandas as pd
 import threading
 import queue
+import time
 
 from itertools import combinations
 
@@ -11,11 +12,12 @@ from lib.agentinfo import AgentInfoFactory
 logger = LoggerFactory.getLogger(__name__)
 
 class PolicyOptimizer():
-    def __init__(self, agentInfo, minAgents, depth, threads):
+    def __init__(self, agentInfo, minAgents, depth, threads, timeout):
         self.agentInfo = AgentInfoFactory.getAgentInfo(agentInfo) if agentInfo != None else None
         self.minAgents = minAgents
         self.depth = depth
         self.threads = threads
+        self.timeout = timeout
 
         self.totalQuality = 0
 
@@ -105,14 +107,27 @@ class PolicyOptimizer():
         
         logger.info(f"Verifying {c} combinations ...")
 
+        # set the timer for the timeout
+        start = time.time()
+        
+        # start the worker threads
         workers = []
         for i in range(0,self.threads):
             t = Worker(q, m, result)
             t.start()
             workers.append(t)
 
+        # wait for worker threads to terminate
         for worker in workers:
-            worker.join()
+            worker.join(10)
+            if worker.is_alive():
+                if  int(time.time()) - start > self.timeout * 60:
+                    logger.info(f"Stopping optimization since timout ({self.timeout} mins) was reached.")
+                    for w in workers:
+                        w.shutdown = True
+
+                    break
+
 
         baseIds = result.baseIds
 
@@ -207,10 +222,11 @@ class Worker(threading.Thread):
         self.queue = queue
         self.matrix = matrix
         self.result = result
+        self.shutdown = False
 
     def run(self):
         combination = self.queue.get()
-        while not combination == None:
+        while not combination == None and not self.shutdown:
             m = self.matrix.loc[list(combination),:]
             s = m.all()
             c = s.value_counts()
