@@ -44,6 +44,8 @@ class PolicyFactory():
 
             (policies, tags) = self.generatePoliciesClassic(agentConfigurations)
 
+            thresholdCount = len(policies)
+
             agentConfigurations = otherConfigurations
 
         else:
@@ -102,7 +104,7 @@ class PolicyFactory():
                 agentCount = agentCount + 1
 
 
-        logger.info(f"Generated {len(policies)} policies. ({baseCount} base policies, {agentCount} agent policies, {len(tags)} tagged agents)")
+        logger.info(f"Generated {len(policies)} policies. ({baseCount} base policies, {agentCount} agent policies, {thresholdCount} threshold policies, {len(tags)} tagged agents)")
         return policies, tags
 
 
