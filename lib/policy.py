@@ -112,6 +112,7 @@ class PolicyFactory():
     def generatePoliciesClassic(self, instanceThresholdConfiguration):
         policies = {}
         tags = {}
+        count={}
 
         for configuration in instanceThresholdConfiguration:
             agentId = f"{configuration.agent}:{configuration.port}"
@@ -121,13 +122,18 @@ class PolicyFactory():
                 policies[id] = self.createPolicy(f'TAG EQUALS "THRESHOLD-{id}"', policyname,
                     self.tenantId, self.tenantName, self.shared, self.enabled, self.basePrecedence, self.owner, self.group,
                     "Auto generated threshold policy")
-                logger.info(f"Generation classic threshold policy {policyname}")
+                count[id] = 0
 
             configuration.generate(policies[id], self, classic = True)
+            count[id] = count[id] + 1
 
             # add agents to tags
             if not agentId in tags: tags[agentId] = set()
             tags[agentId].add(f"THRESHOLD-{id}")
+
+        for id in policies:
+            logger.info(f"Generating classic threshold policy THRESHOLD-{id} - covering {count[id]} instance threshold configurations.")
+                
 
         return list(policies.values()), tags
 

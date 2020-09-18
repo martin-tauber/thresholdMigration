@@ -87,7 +87,7 @@ def parseArguments():
             "one policy.")
 
     migrateCmd.add_argument("--classicprefix", action="store", dest=ckey.classicPrefix, type=int,
-        help=f"Number of characters of the device name used to generate the device groups which are grouped together in one threhold policy. The default is {cdefault.classicPrefix}")
+        help=f"Number of characters of the device name used to generate the device groups which are grouped together in one threshold policy. The default is {cdefault.classicPrefix}")
 
     migrateCmd.add_argument("--beautify", action="store_true", dest=ckey.beautify,
         help=f"when creating policy names the monitor name is used. Often the monitor name will have an ending like '_CONTAINER'. If you specify this option, the ending will be " +
