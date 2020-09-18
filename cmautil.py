@@ -86,6 +86,9 @@ def parseArguments():
         help=f"Skip optimization phase while processing server instance thresholds and generate policies which will contain all the server thresholds for one attribute in "
             "one policy.")
 
+    migrateCmd.add_argument("--classicprefix", action="store", dest=ckey.classicPrefix, type=int,
+        help=f"Number of characters of the device name used to generate the device groups which are grouped together in one threhold policy. The default is {cdefault.classicPrefix}")
+
     migrateCmd.add_argument("--beautify", action="store_true", dest=ckey.beautify,
         help=f"when creating policy names the monitor name is used. Often the monitor name will have an ending like '_CONTAINER'. If you specify this option, the ending will be " +
             f"removed. The defaukt is that the name is not beautified.")
@@ -161,7 +164,7 @@ def parseArguments():
 
 
 def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFilenames, pconfig, agentGroup, beautify, optimzeThreshold, minAgents, depth, threads, agentInfo,
-        force, classic, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group):
+        force, classic, classicPrefix, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group):
 
     # get the repository
     kmRepository = KMRepository.get(repositoryDir, cacheDir, version)
@@ -176,7 +179,7 @@ def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFi
         agentConfigurations = instanceThresholdMigrator.migrate(force)
 
         # Generate Policies
-        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify, classic, optimzeThreshold, minAgents, depth, threads, agentInfo)
+        policyFactory = PolicyFactory(agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify, classic, classicPrefix, optimzeThreshold, minAgents, depth, threads, agentInfo)
         (policies, tags) = policyFactory.generatePolicies(agentConfigurations)
 
         # Write Policies to file
@@ -260,6 +263,7 @@ try:
             config.agentInfo,
             config.force,
             config.classic,
+            config.classicPrefix,
             config.tenantId,
             config.tenantName,
             config.shared,

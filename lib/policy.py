@@ -14,7 +14,7 @@ logger = LoggerFactory.getLogger(__name__)
 # Policies
 #-----------------------
 class PolicyFactory():
-    def __init__(self, agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify = False, classic = False, optimizeThreshold = 20, minAgents = 2, depth = 3, threads = 8, agentInfo = None):
+    def __init__(self, agentGroup, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, owner, group, beautify = False, classic = False, classicPrefix = 1, optimizeThreshold = 20, minAgents = 2, depth = 3, threads = 8, agentInfo = None):
         self.agentGroup = agentGroup
         self.tenantId = tenantId
         self.tenantName = tenantName
@@ -26,6 +26,7 @@ class PolicyFactory():
         self.group = group
         self.beautify = beautify
         self.classic = classic
+        self.classicPrefix = classicPrefix
         self.optimizeThreshold = optimizeThreshold
 
         self.optimizer = PolicyOptimizer(agentInfo, minAgents, depth, threads)
@@ -114,7 +115,7 @@ class PolicyFactory():
 
         for configuration in instanceThresholdConfiguration:
             agentId = f"{configuration.agent}:{configuration.port}"
-            id = f"{configuration.device[0].upper()}-{configuration.monitorType}-{configuration.attribute}"
+            id = f"{configuration.device[0:self.classicPrefix].upper()}-{configuration.monitorType}-{configuration.attribute}"
             if not id in policies:
                 policyname =  f"THRESHOLD-{id}"
                 policies[id] = self.createPolicy(f'TAG EQUALS "THRESHOLD-{id}"', policyname,

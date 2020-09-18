@@ -17,6 +17,7 @@ class CKey():
     threads = "threads"
     agentInfo = "agentInfo"
     classic = "classic"
+    classicPrefix = "classicPrefix"
     thresholds = "thresholds"
     pconfig = "pconfig"
     monitor = "monitor"
@@ -50,6 +51,7 @@ class CDefault():
     threads = 8
     agentInfo = None
     classic = False
+    classicPrefix = 1
     thresholds = None
     pconfig = None
     monitor = None
@@ -123,7 +125,7 @@ class Config():
 class MigrateConfig(Config):
     keys = [ckey.repositoryDir, ckey.cacheDir, ckey.repositoryVersion, ckey.policyDir, ckey.tagsDir, ckey.agentGroup, ckey.beautify, ckey.optimizeThreshold, ckey.thresholds,
         ckey.pconfig, ckey.tenantId, ckey.tenantName, ckey.basePrecedence, ckey.agentPrecedence, ckey.shared, ckey.enabled, ckey.owner, ckey.group, ckey.agentInfo,
-        ckey.force, ckey.minAgents, ckey.depth, ckey.threads, ckey.classic]
+        ckey.force, ckey.minAgents, ckey.depth, ckey.threads, ckey.classic, ckey.classicPrefix]
 
     def __init__(self, args):
         super().__init__(args)
