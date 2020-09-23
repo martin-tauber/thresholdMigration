@@ -20,6 +20,7 @@ class CKey():
     classic = "classic"
     classicPrefix = "classicPrefix"
     thresholds = "thresholds"
+    thresholdExtension = "thresholdExtension"
     pconfig = "pconfig"
     monitor = "monitor"
 
@@ -56,6 +57,7 @@ class CDefault():
     classic = False
     classicPrefix = 1
     thresholds = None
+    thresholdsExtension = "csv"
     pconfig = None
     monitor = None
 
