@@ -1,6 +1,7 @@
 import csv
 import traceback
 import os
+import re
 
 from .logger import LoggerFactory
 from lib.configuration import InstanceThresholdConfiguration
@@ -115,9 +116,10 @@ class ThresholdSet():
 
         
 class FileThresholdSet(ThresholdSet):
-    def __init__(self, filenames):
+    def __init__(self, filenames, extension):
         self.set = []
         self.filenames = filenames
+        self.extension = extension
 
     def load(self, filename = None):
         if (filename == None):
@@ -127,10 +129,13 @@ class FileThresholdSet(ThresholdSet):
                     self.load(filename)
 
                 elif os.path.isdir(filename):
+                    pattern = re.compile(f".*\.{self.extension}")
+
                     for subdir, dirs, files in os.walk(filename):
                         for f in files:
-                            self.load(f"{subdir}{os.path.sep}{f}")
-                            
+                            if re.match(pattern, f):
+                                self.load(f"{subdir}{os.path.sep}{f}")
+
         else:
             logger.info(f"Loading Server Thresholds from '{filename}' ...")
             with open(filename) as input:

@@ -34,7 +34,10 @@ def parseArguments():
         "Use 'migrate -h' to get more information on the migrate command.")
 
     migrateCmd.add_argument("-t", "--thresholds", action="store", dest=ckey.thresholds, nargs="+",
-        help=f"name of the file which which contains the thresholds exported from tsps. The default file name is \'{cdefault.thresholds}\'")
+        help=f"name of the file which which contains the thresholds exported from tsps. The default file name is \'{cdefault.thresholds}\'-")
+
+    migrateCmd.add_argument("--thresholdext", action="store", dest=ckey.thresholdExtension,
+        help=f"If a directory was specified in the --thresholds parameters, only files with this extension will be loaded. The default value is \'{cdefault.thresholdExtension}\'.")
 
     migrateCmd.add_argument("--pconfig", action="store", dest=ckey.pconfig, nargs="+",
         help=f"pconfig file that should be migrated to cma.")
@@ -173,7 +176,7 @@ def parseArguments():
     return parser.parse_args()
 
 
-def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFilenames, pconfig, agentGroup, beautify, optimzeThreshold, minAgents, depth, threads, timeout, agentInfo,
+def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFilenames, thresholdExtension, pconfig, agentGroup, beautify, optimzeThreshold, minAgents, depth, threads, timeout, agentInfo,
         force, classic, classicPrefix, tenantId, tenantName, shared, enabled, basePrecedence, agentPrecedence, thresholdPrecedence, owner, group):
 
     # get the repository
@@ -181,7 +184,7 @@ def migrateCmd(repositoryDir, cacheDir, version, policyDir, tagsDir, thresholdFi
 
     if thresholdFilenames != None:
         # load the Threshold File
-        thresholdSet = FileThresholdSet(thresholdFilenames)
+        thresholdSet = FileThresholdSet(thresholdFilenames, thresholdExtension)
         thresholdSet.load()
 
         # Migrate Thresholds
@@ -263,6 +266,7 @@ try:
             config.policyDir,
             config.tagsDir,
             config.thresholds,
+            config.thresholdExtension,
             config.pconfig,
             config.agentGroup,
             config.beautify,
