@@ -1,7 +1,6 @@
 import csv
 import traceback
-import pandas as pd
-import numpy as np
+import os
 
 from .logger import LoggerFactory
 from lib.configuration import InstanceThresholdConfiguration
@@ -120,11 +119,20 @@ class FileThresholdSet(ThresholdSet):
         self.set = []
         self.filenames = filenames
 
-    def load(self):
+    def load(self, filename = None):
+        if (filename == None):
+            for filename in self.filenames:
 
-        for filename in self.filenames:
+                if os.path.isfile(filename):
+                    self.load(filename)
+
+                elif os.path.isdir(filename):
+                    for subdir, dirs, files in os.walk(filename):
+                        for f in files:
+                            self.load(f"{subdir}{os.path.sep}{f}")
+                            
+        else:
             logger.info(f"Loading Server Thresholds from '{filename}' ...")
-
             with open(filename) as input:
                 reader = csv.reader(input)
                 rowno = 0 
