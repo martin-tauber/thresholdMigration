@@ -118,7 +118,12 @@ class PolicyFactory():
 
         for configuration in instanceThresholdConfiguration:
             agentId = f"{configuration.agent}:{configuration.port}"
-            id = f"{configuration.device[0:self.classicPrefix].upper()}-{configuration.monitorType}-{configuration.attribute}"
+
+            if self.classicPrefix != 0:
+                id = f"{configuration.device[0:self.classicPrefix].upper()}-{configuration.monitorType}-{configuration.attribute}"
+            else:
+                id = f"{configuration.monitorType}-{configuration.attribute}"
+
             if not id in policies:
                 policyname =  f"THRESHOLD-{id}"
                 policies[id] = self.createPolicy(f'TAG EQUALS "THRESHOLD-{id}"', policyname,

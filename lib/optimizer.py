@@ -21,6 +21,31 @@ class PolicyOptimizer():
 
         self.totalQuality = 0
 
+    def optimize2(self, agentConfigurations):
+        (c, configurations) = self.createConfigurationMatrix(agentConfigurations)
+
+        g = pd.DataFrame()
+        for attribute in self.agentInfo["header"]:
+            g[attribute] = c.loc[f"_{attribute}_"][2:]
+            
+        # loop through the groups
+        for name, group in g.groupby(self.agentInfo["header"]):
+            gc = self.filter(c, self.agentInfo["header"], list(name) if type(name) is tuple else [name])
+
+            logger.info(f"Optimizing agent group *** {name} ***")
+
+            # horizontal max
+            x = c[gc.iloc[:,2:].sum(axis=0).sort_values(ascending=False).index[0]]
+
+            # vertical max
+            y = c[gc.sum(axis=0).sort_values(ascending=False).index[0]]
+            
+            # new matrix 
+            n = gc.loc[x[x == True]][y[y == True]]
+
+
+            s=c[x]
+            s[s == True].index
 
     def optimize(self, agentConfigurations, threshold):
         baseConfigs = {}

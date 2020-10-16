@@ -13,7 +13,7 @@
             "args": [
                 "migrate",
                 "--thresholds",
-                "/Users/martin/Downloads/InstanceThresholdsSanofi_E21_E111/*.csv",
+                "/Users/martin/Downloads/phx-tsimqa-01_AllInstanceThresholdSettings_2020_10_15_04_01_51_QA.csv",
                 "--classic"
             ]
         },

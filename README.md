@@ -23,6 +23,9 @@ to install the missing package. If you are using anacoda then use
 
 to install the missing packages.
 
+Note: Some of the above mentioned modules are part of the standard installation so you might not need to install them explicitly 
+you can run the tool to see which modules are missing.
+
 # Installation
 You just need to clone this repository onto your machine using
 
@@ -54,6 +57,18 @@ To migrate thresholds run the following command
 where *path* is the path to the file you exported from the TrueSight presentation server. The *path* parameter can point to a file or a 
 directory. If it points to a directory all the files in the directory are migrated. You can also specify more than one *path* following
 the --thresholds switch. The all the files and directories specified will be migrated.
+
+## Migration Modes
+
+The tool offers two migration modes: classic and non-classic. In the classic mode the threshold migration will mimic the way instance
+server thresholds are handled in the TSIM server. It will generate a policy per monitoring type and parameter. to run the tool in
+classic mode you need to specify the --classic command line option.
+
+    --classic
+
+By default the tool will run in the non classic mode. In this mode the tool will try to find communalities and generate two policy types.
+For the the communalities it will generate BASE policies grouped by monitor type. For thresholds which are not covered by the BASE policy
+the utility will generate a HOST specific policy. 
 
 ## Understanding the output
 

@@ -35,7 +35,7 @@ class KMRepository():
                         logger.info(f"parsing {dirname}{os.path.sep}{file} ...")
                         root = ElementTree.parse(f"{dirname}{os.path.sep}{file}").getroot()
 
-                        self.monitors[file[:-4]] = {
+                        monitor = {
                             "monitorType": file[:-4],
                             "solution": match[1],
                             "description": root.attrib["description"] if "description" in root.attrib else None,
@@ -46,17 +46,30 @@ class KMRepository():
                             "release": match[2]
                         }
 
-                        elConfigurationParameter = root.find("./Applications/Application/KMConfigurationMetadata/ConfigurationParameters/ConfigurationParameter")
-                        if elConfigurationParameter == None: continue
+                        self.monitors[file[:-4]] = monitor
 
-                        if elConfigurationParameter[0].tag == "AttributeSet":
-                            (id, attribute) = self.parseAttributeSet(elConfigurationParameter[0], {})
-                            self.monitors[file[:-4]]["configuration"] = attribute
-                        else:
-                            (id, attribute) = self.parseAttribute(elConfigurationParameter[0])
-                            self.monitors[file[:-4]]["configuration"] = {
-                                id: attribute
-                            }
+                        elConfigurationParameter = root.find("./Applications/Application/KMConfigurationMetadata/ConfigurationParameters/ConfigurationParameter")
+                        if elConfigurationParameter != None: 
+                            if elConfigurationParameter[0].tag == "AttributeSet":
+                                (id, attribute) = self.parseAttributeSet(elConfigurationParameter[0], {})
+                                monitor["configuration"] = attribute
+                            else:
+                                (id, attribute) = self.parseAttribute(elConfigurationParameter[0])
+                                monitor["configuration"] = {
+                                    id: attribute
+                                }
+
+                        monitor["parameters"] = {} 
+                        elParameters = root.find("./Applications/Application/Parameters")
+                        if elParameters != None:
+                            for elChild in elParameters.getchildren():
+                                monitor["parameters"][elChild.attrib["name"]] = {
+                                    "output": elChild.attrib["output"] if "output" in elChild.attrib else None,
+                                    "title": elChild.attrib["title"] if "title" in elChild.attrib else None,
+                                    "type": elChild.attrib["type"] if "type" in elChild.attrib else None,
+                                    "active": elChild.attrib["active"] if "active" in elChild.attrib else None
+                                }
+
 
     def parseAttributeSet(self, node, set):
         for elChild in node.getchildren():
@@ -154,6 +167,16 @@ class KMRepository():
                 skip = False
 
         return attribute
+
+    def getRealName(self, monitorType, parameter):
+        if not monitorType in self.monitors: raise RuntimeError(f"Monitor Type '{monitorType}' not found in repository.")
+
+        p1 = parameter.lower()
+
+        for p2 in self.monitors[monitorType]["parameters"]:
+            if p1 == p2.lower(): return p2
+
+        raise RuntimeError(f"Parameter '{parameter} for monitor type {monitorType} not found in repository.")
 
     @staticmethod
     def get(repositorydir = None, cachedir = None, version = None):

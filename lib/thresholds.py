@@ -78,7 +78,7 @@ class InstanceThresholdMigrator():
                     release = self.kmRepository.monitors[threshold["monitorType"]]["release"] if threshold["monitorType"] in self.kmRepository.monitors else "unknown",
                     monitorType = threshold["monitorType"],
                     device = threshold["device"],
-                    attribute = threshold["attribute"],
+                    attribute = self.kmRepository.getRealName(threshold["monitorType"], threshold["attribute"]),
 
                     # Details
                     absoluteDeviation = threshold["absoluteDeviation"],
